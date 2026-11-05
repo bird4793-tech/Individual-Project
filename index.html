@@ -1,503 +1,390 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MeetPulse - 北歐冷杉石墨版</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --nordic-bg: #1f2428;
-      --nordic-card: #272e35;
-      --nordic-card-sub: #1b1f23;
-      --nordic-border: #37414a;
-      --nordic-text-main: #e6edf3;
-      --nordic-text-sub: #8b949e;
-      --nordic-green: #238636;
-      --nordic-green-hover: #2ea043;
-      --nordic-btn-sub: #37414a;
-      --nordic-btn-sub-hover: #444d56;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MeetPulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f2f4f8;--white:#fff;--ink:#0e1726;--ink-2:#27344d;--muted:#5b6678;--line:#ccd3df;--signal:#ff5a1f;--ok:#0c8a5c}
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;color:var(--ink);background:var(--paper);font:15px/1.7 "Archivo","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+.hidden{display:none!important}
+.wrap{max-width:880px;margin:0 auto;padding:36px 24px 96px}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 
-    body {
-      background-color: var(--nordic-bg) !important;
-      color: var(--nordic-text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-      letter-spacing: 0.03em;
-      line-height: 1.6;
-    }
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1.5px solid var(--ink)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:34px;height:34px}
+.brand h1{font-size:20px;font-weight:700;line-height:1.2}
+.brand p{font-size:13px;color:var(--muted)}
+.key input{width:210px;font-size:13px}
 
-    /* 北歐冷杉石墨卡片 */
-    .nordic-card {
-      background-color: var(--nordic-card);
-      border: 1px solid var(--nordic-border);
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    }
+.hero{padding:44px 0 52px}
+.hero .lab{font-size:14px;color:var(--muted)}
+#countdown{font-size:clamp(44px,9vw,84px);font-weight:600;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:6px 0 14px}
+#countdown small{font-size:.32em;font-weight:500;letter-spacing:0;color:var(--muted);margin:0 .5em 0 .15em}
+#heroTitle{font-size:18px;font-weight:500;max-width:34em}
+#heroTime{font-size:14px;color:var(--muted)}
 
-    .nordic-input {
-      background-color: var(--nordic-card-sub);
-      border: 1px solid var(--nordic-border);
-      border-radius: 6px;
-      color: var(--nordic-text-main);
-      transition: all 0.2s ease;
-    }
-    .nordic-input:focus {
-      outline: none;
-      border-color: #58a6ff;
-      background-color: #161b22;
-    }
+.stage{position:relative;padding:0 0 56px 68px}
+.stage::before{content:"";position:absolute;left:15.5px;top:40px;bottom:10px;width:1px;background:var(--ink-2);opacity:.35}
+.stage:last-child{padding-bottom:0}.stage:last-child::before{display:none}
+.mark{position:absolute;left:0;top:0;width:32px;height:32px;border:1.5px solid var(--ink);border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--paper)}
+.stage h2{font-size:22px;font-weight:700;line-height:32px;margin-bottom:22px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+@media(max-width:640px){.wrap{padding:24px 16px 72px}.stage{padding-left:50px}.key input{width:100%}.key{width:100%}.two{grid-template-columns:1fr!important}}
 
-    /* 冷杉墨綠按鈕 */
-    .btn-forest {
-      background-color: var(--nordic-green);
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      transition: background-color 0.2s ease;
-    }
-    .btn-forest:hover {
-      background-color: var(--nordic-green-hover);
-    }
+.grid{display:grid;gap:22px}.two{grid-template-columns:1fr 1fr}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:2px}
+input,textarea,select{width:100%;font:inherit;font-size:15px;color:var(--ink)}
+input,select{background:transparent;border:0;border-bottom:1.5px solid var(--line);border-radius:0;padding:8px 0;transition:border-color .15s}
+input::placeholder,textarea::placeholder{color:#8a94a6}
+input:focus,select:focus{outline:none;border-bottom-color:var(--ink)}
+input[type=checkbox]{width:16px;height:16px;padding:0;accent-color:var(--ink)}
+textarea{background:var(--white);border:1px solid var(--line);border-radius:2px;padding:14px;line-height:1.8;resize:vertical}
+textarea:focus{outline:none;border-color:var(--ink)}
+#minutesOutput{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13.5px}
+select{width:auto;padding-right:8px}
 
-    /* 石墨次要按鈕 */
-    .btn-slate {
-      background-color: var(--nordic-btn-sub);
-      color: var(--nordic-text-main);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      transition: all 0.2s ease;
-    }
-    .btn-slate:hover {
-      background-color: var(--nordic-btn-sub-hover);
-      color: #ffffff;
-    }
+.btn{font:inherit;font-size:15px;font-weight:600;border-radius:2px;padding:11px 22px;cursor:pointer;border:1.5px solid var(--ink);transition:background .15s,color .15s}
+.primary{background:var(--ink);color:var(--paper)}.primary:hover{background:var(--ink-2)}
+.ghost{background:transparent;color:var(--ink)}.ghost:hover{background:var(--ink);color:var(--paper)}
+.block{width:100%}.small{padding:6px 14px;font-size:14px}
+.link{background:none;border:0;border-bottom:1px solid var(--ink);font:inherit;font-size:14px;color:var(--ink);cursor:pointer;padding:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.grow{flex:1}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
-    /* 錄音中微呼吸效果 */
-    .recording-pulse {
-      animation: forestPulse 1.4s infinite ease-in-out;
-    }
-    @keyframes forestPulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.9); }
-    }
-  </style>
+.notice{font-size:14px;padding:6px 0 6px 14px;border-left:3px solid var(--ok)}
+.notice.err{border-left-color:var(--signal);margin-bottom:14px}
+
+.status{font-size:13px;font-weight:500;padding:1px 12px;border:1px solid var(--line);border-radius:2px;color:var(--muted)}
+.status.live{color:var(--signal);border-color:var(--signal)}
+.rec-btn{display:flex;align-items:center;gap:9px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--paper)}
+.rec-btn.recording{background:var(--signal);border-color:var(--signal);color:#fff;animation:ring 1.6s infinite}
+.rec-btn.recording .dot{background:#fff}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(255,90,31,.5)}70%,100%{box-shadow:0 0 0 14px rgba(255,90,31,0)}}
+@media(prefers-reduced-motion:reduce){.rec-btn.recording{animation:none}}
+.tools{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.live-wrap{position:relative;margin-bottom:16px}
+#liveStreamBubble{position:absolute;left:12px;right:12px;bottom:12px;font-size:13px;color:var(--muted);background:var(--paper);border:1px solid var(--line);padding:4px 12px;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#interimText{color:var(--ink)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{font:inherit;font-size:14px;background:var(--white);color:var(--ink);border:1px solid var(--line);border-radius:2px;padding:3px 12px;cursor:pointer}
+.chip:hover{border-color:var(--ink)}.chip b{color:var(--signal);margin-right:4px}
+.muted{font-size:13px;color:var(--muted)}
+.domains{display:flex;gap:8px}
+.domain{font:inherit;font-size:13px;color:var(--muted);background:none;border:0;border-bottom:1px dashed var(--muted);cursor:pointer;padding:0}
+.domain:hover{color:var(--ink)}
+#attendeeList{list-style:none;padding:0;max-height:260px;overflow-y:auto;border-bottom:1px solid var(--line)}
+#attendeeList li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+#attendeeList label{display:flex;align-items:center;gap:12px;margin:0;color:var(--ink);cursor:pointer}
+.n{font-size:15px;line-height:1.35}.e{font-size:13px;color:var(--muted)}
+.badge{font-size:12px;padding:0 9px;border-radius:2px;white-space:nowrap;border:1px solid}
+.badge.ok{color:var(--ok);border-color:var(--ok)}.badge.warn{color:var(--muted);border-color:var(--line)}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;margin-left:8px}.x:hover{color:var(--signal)}
+.meetings{margin:0 0 56px}
+.meetings h3{font-size:18px;font-weight:700}
+#meetingList,#endedList{list-style:none;padding:0;margin-top:10px}
+.mt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);background:var(--white);margin-bottom:-1px;cursor:pointer}
+.mt:hover{border-color:var(--ink);position:relative}
+.mt.on{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--ink);position:relative}
+.mt .t{flex:1;min-width:0}.mt .t b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt .t span{font-size:13px;color:var(--muted)}
+.mt .s{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.mt .s.live{color:var(--signal);font-weight:600}
+.flag{font-size:12px;color:var(--signal);border:1px solid var(--signal);padding:0 8px;border-radius:2px}
+.ended{margin-top:16px}.ended summary{cursor:pointer;font-size:14px;color:var(--muted)}
+.ended .mt{background:transparent;opacity:.75}
+</style>
 </head>
-<body class="p-6 md:p-12 min-h-screen">
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="14" stroke="#0e1726" stroke-width="1.5"/><circle cx="17" cy="17" r="4" fill="#0e1726"/><circle cx="29.5" cy="10.5" r="3" fill="#ff5a1f"/></svg>
+    <div><h1>MeetPulse</h1><p>主持人：阿鳥　語音紀錄整理與出席管理</p></div>
+  </div>
+  <div class="key"><input id="apiKeyInput" type="password" placeholder="Gemini API Key（選填）"></div>
+</header>
 
-  <!-- 頂部：冷杉石墨極簡排版 -->
-  <header class="max-w-5xl mx-auto mb-10 pb-6 border-b border-[#37414a] flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+<section class="hero">
+  <p class="lab" id="heroLabel">距離會議開始</p>
+  <div id="countdown">--</div>
+  <p id="heroTitle"></p>
+  <p id="heroTime"></p>
+</section>
+
+<section class="meetings">
+  <div class="between"><h3>會議列表</h3><button class="btn ghost small" onclick="newMeeting()">＋ 新增會議</button></div>
+  <ul id="meetingList"></ul>
+  <details id="endedBox" class="ended hidden"><summary>已結束（<span id="endedCount">0</span>）</summary><ul id="endedList"></ul></details>
+</section>
+
+<main>
+<section class="stage">
+  <span class="mark">1</span>
+  <h2>會議設定與邀請</h2>
+  <div class="grid">
+    <div><label for="meetingTitle">會議主題</label><input id="meetingTitle" type="text" value="關於下週全體跳槽與火星開分公司可行性緊急閉門會議"></div>
+    <div class="grid two">
+      <div><label for="meetingTime">時間</label><input id="meetingTime" type="datetime-local" value="2026-11-18T14:00"></div>
+      <div><label for="meetingDur">時長（分鐘）</label><input id="meetingDur" type="number" min="5" step="5" value="30"></div>
+    </div>
+    <div><label for="inviteEmails">收件信箱清單</label><input id="inviteEmails" type="text" value="bird4793@livemail.tw"></div>
+    <div class="row"><button class="btn primary" onclick="sendInvites()">發送行事曆邀請</button><p id="inviteStatus" class="notice hidden"></p></div>
+  </div>
+</section>
+
+<section class="stage">
+  <span class="mark">2</span>
+  <h2>出席名單管理</h2>
+  <div class="grid">
+    <div><label>常用名冊，點一下加入（已在名單內的會自動隱藏）</label><div id="quickAddChips" class="chips"></div></div>
     <div>
-      <div class="flex items-center gap-3">
-        <span class="w-3 h-3 bg-[#2ea043] rounded-sm inline-block"></span>
-        <h1 class="text-xl font-medium tracking-wider text-[#e6edf3]">MeetPulse</h1>
-        <span class="text-xs text-[#8b949e] tracking-wider pl-2 border-l border-[#37414a]">Nordic Forest</span>
+      <label>手動補登</label>
+      <div class="grid two" style="gap:16px"><input id="newName" type="text" placeholder="姓名 / 暱稱"><input id="newEmail" type="text" placeholder="電子信箱"></div>
+      <div class="between" style="margin-top:14px">
+        <div class="domains"><button class="domain" onclick="appendDomain('@hotmail.com')">@hotmail.com</button><button class="domain" onclick="appendDomain('@outlook.com')">@outlook.com</button></div>
+        <button class="btn ghost small" onclick="manualAdd()">加入名冊</button>
       </div>
-      <p class="text-xs text-[#8b949e] mt-2">主持人：阿鳥 ｜ 語音紀錄整理與出席管理</p>
     </div>
-    <div class="w-full md:w-auto">
-      <input id="apiKeyInput" type="password" placeholder="Gemini API Key (選填)" class="nordic-input text-xs px-3 py-2 w-full md:w-48 placeholder-[#6e7681]">
+    <div>
+      <div class="between" style="margin-bottom:8px"><span class="muted">目前名冊</span><button class="link" onclick="simulateConfirm()">全體出席確認</button></div>
+      <ul id="attendeeList"></ul>
     </div>
-  </header>
+  </div>
+</section>
 
-  <!-- 主內容工作區 -->
-  <main class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+<section class="stage">
+  <span class="mark">3</span>
+  <h2>會議收音與即時文字<span id="micStatusIndicator" class="status">待命中</span></h2>
+  <div class="tools">
+    <button id="recBtn" class="btn primary rec-btn" onclick="toggleRecording()"><span id="recDot" class="dot"></span><span id="recText">啟動收音</span></button>
+    <button class="btn ghost small" onclick="clearTranscript()">清除內容</button>
+  </div>
+  <div id="micErrorMsg" class="notice err hidden">未取得麥克風授權或當前瀏覽器不支援即時收音，您可直接在下方手動鍵入討論內容。</div>
+  <div class="live-wrap">
+    <textarea id="transcriptBox" rows="8" placeholder="點擊「啟動收音」開始講話，收到的字句會即時顯示在這裡…"></textarea>
+    <div id="liveStreamBubble" class="hidden">即時辨識中：<span id="interimText"></span></div>
+  </div>
+  <div class="row">
+    <select id="targetLang">
+      <option value="國語 (繁體中文)">繁體中文（標準）</option>
+      <option value="英文">英語 (English)</option>
+      <option value="日文">日本語 (Japanese)</option>
+      <option value="德文">德語 (Deutsch)</option>
+      <option value="法文">法語 (Français)</option>
+      <option value="義大利文">義大利語 (Italiano)</option>
+      <option value="西班牙文">西班牙語 (Español)</option>
+    </select>
+    <button class="btn primary grow" onclick="generateMinutes()">整理並產出會議紀錄</button>
+  </div>
+</section>
 
-    <!-- 左側欄：會議規格與與會確認 -->
-    <div class="lg:col-span-5 space-y-6">
+<section class="stage">
+  <span class="mark">4</span>
+  <h2>會議紀錄審閱與寄送</h2>
+  <textarea id="minutesOutput" rows="12" placeholder="點擊「整理並產出會議紀錄」後，會依收音全文與所選語言整理成正式文稿…" style="margin-bottom:16px"></textarea>
+  <div class="row"><button class="btn primary grow" onclick="sendMinutesEmail()">確認核可，直接發信通知出席者</button><button class="btn ghost" onclick="copyMinutes()">複製文稿</button></div>
+  <p class="muted" style="margin-top:10px">將發送至 bird4793@livemail.tw</p>
+  <p id="sendResult" class="notice hidden" style="margin-top:12px"></p>
+</section>
+</main>
+</div>
+<script>
+const presetCandidatePool = [
+  { name: '隔壁部門偷吃零食的小美', email: 'snack.mei@hotmail.com', defaultTag: '偷吃零食' },
+  { name: '路過被抓進來的倒楣工讀生', email: 'parttime@outlook.com', defaultTag: '等待救援' },
+  { name: '只會說okok但不知道要幹嘛的主管', email: 'boss.ok@hotmail.com', defaultTag: '精神列席' },
+  { name: '天天都在減肥但下午必訂手搖飲的Peggy', email: 'boba.peggy@outlook.com', defaultTag: '手搖成癮' },
+  { name: '偷用公司印表機印小說的阿明', email: 'printer.ming@hotmail.com', defaultTag: '紙張小偷' },
+  { name: '開會都在偷看股票的隔壁老王', email: 'stock.wang@outlook.com', defaultTag: '被套牢中' }
+];
 
-      <!-- 01 會議與邀請 -->
-      <section class="nordic-card">
-        <div class="flex justify-between items-baseline mb-5 pb-2.5 border-b border-[#37414a]">
-          <h2 class="text-xs font-semibold tracking-wider text-[#e6edf3] flex items-center gap-2">
-            <span class="text-[#2ea043] font-mono">[01]</span> 會議設定與邀請
-          </h2>
-          <span class="text-[11px] text-[#8b949e]">bird4793@livemail.tw</span>
+let attendees = [
+  { name: '阿鳥 (主辦)', email: 'bird4793@livemail.tw', confirmed: true, tag: '主辦人' },
+  { name: '隔壁部門偷吃零食的小美', email: 'snack.mei@hotmail.com', confirmed: true, tag: '偷吃零食' },
+  { name: '路過被抓進來的倒楣工讀生', email: 'parttime@outlook.com', confirmed: false, tag: '等待救援' }
+];
+
+function renderQuickAddChips() {
+  const box = document.getElementById('quickAddChips');
+  box.innerHTML = '';
+  const have = attendees.map(a => a.email.toLowerCase());
+  const avail = presetCandidatePool.filter(c => !have.includes(c.email.toLowerCase()));
+  if (!avail.length) { box.innerHTML = '<span class="muted">常用名冊人員皆已加入名單</span>'; return; }
+  avail.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.innerHTML = `<b>+</b>${p.name}`;
+    b.onclick = () => quickAdd(p.name, p.email, p.defaultTag);
+    box.appendChild(b);
+  });
+}
+
+function renderAttendees() {
+  const list = document.getElementById('attendeeList');
+  list.innerHTML = '';
+  attendees.forEach((p, idx) => {
+    list.innerHTML += `
+      <li>
+        <label>
+          <input type="checkbox" ${p.confirmed ? 'checked' : ''} onchange="toggleConfirm(${idx})">
+          <div><p class="n">${p.name}</p><p class="e">${p.email}</p></div>
+        </label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${p.confirmed ? 'ok' : 'warn'}">${p.tag}</span>
+          ${idx !== 0 ? `<button class="x" onclick="removeAttendee(${idx})" title="移除">✕</button>` : ''}
         </div>
+      </li>`;
+  });
+  renderQuickAddChips();
+}
 
-        <div class="space-y-4 text-xs">
-          <div>
-            <label class="block text-[#8b949e] mb-1.5">會議主題</label>
-            <input id="meetingTitle" type="text" value="關於下週全體跳槽與火星開分公司可行性緊急閉門會議" class="w-full nordic-input px-3 py-2 text-xs">
-          </div>
-          <div>
-            <label class="block text-[#8b949e] mb-1.5">時間</label>
-            <input id="meetingTime" type="datetime-local" value="2026-11-18T14:00" class="w-full nordic-input px-3 py-2 text-xs">
-          </div>
-          <div>
-            <label class="block text-[#8b949e] mb-1.5">收件信箱清單</label>
-            <input id="inviteEmails" type="text" value="bird4793@livemail.tw" class="w-full nordic-input px-3 py-2 text-xs">
-          </div>
+function toggleConfirm(idx) {
+  attendees[idx].confirmed = !attendees[idx].confirmed;
+  attendees[idx].tag = attendees[idx].confirmed ? '已出席' : '未出席';
+  renderAttendees();
+}
+function quickAdd(name, email, tag = '現場補登') {
+  if (attendees.some(a => a.email.toLowerCase() === email.toLowerCase())) return;
+  attendees.push({ name, email, confirmed: true, tag });
+  renderAttendees();
+}
+function removeAttendee(idx) { attendees.splice(idx, 1); renderAttendees(); }
+function appendDomain(domain) {
+  const input = document.getElementById('newEmail');
+  if (!input.value.includes('@')) input.value += domain;
+}
+function manualAdd() {
+  const name = document.getElementById('newName').value.trim();
+  const email = document.getElementById('newEmail').value.trim();
+  if (!name || !email) return alert('請完整填寫姓名與電子信箱');
+  quickAdd(name, email, '手動補登');
+  document.getElementById('newName').value = '';
+  document.getElementById('newEmail').value = '';
+}
+function simulateConfirm() {
+  attendees.forEach(a => { a.confirmed = true; a.tag = '已確認'; });
+  renderAttendees();
+}
+function clearTranscript() {
+  document.getElementById('transcriptBox').value = '';
+  document.getElementById('liveStreamBubble').classList.add('hidden');
+}
 
-          <button onclick="sendInvites()" class="w-full btn-forest text-xs py-2.5 font-medium tracking-wider">
-            發送行事曆邀請
-          </button>
-          <p id="inviteStatus" class="text-xs text-[#3fb950] bg-[#1f3627] border border-[#238636]/50 p-2.5 text-center rounded hidden"></p>
-        </div>
-      </section>
+const WEBHOOK = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
 
-      <!-- 02 與會名單 -->
-      <section class="nordic-card">
-        <h2 class="text-xs font-semibold tracking-wider text-[#e6edf3] flex items-center gap-2 mb-5 pb-2.5 border-b border-[#37414a]">
-          <span class="text-[#2ea043] font-mono">[02]</span> 出席名單管理
-        </h2>
+async function sendInvites() {
+  const emails = document.getElementById('inviteEmails').value.trim();
+  const title = document.getElementById('meetingTitle').value.trim();
+  const status = document.getElementById('inviteStatus');
+  if (!emails) return alert('請輸入收件人信箱');
+  status.classList.remove('err');
+  status.innerHTML = '正在傳送會議邀請…';
+  status.classList.remove('hidden');
+  try {
+    await fetch(WEBHOOK, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'bird4793@livemail.tw',
+        title: `【行事曆邀請】${title}`,
+        content: `阿鳥 您好：\n\n已建立會議項目：「${title}」。\n\n- MeetPulse AI`
+      })
+    });
+    status.innerHTML = '邀請函已發送至：bird4793@livemail.tw';
+  } catch (e) {
+    status.innerHTML = '通訊異常，請檢查網路連線。';
+  }
+}
 
-        <!-- 常用人員標籤池 -->
-        <div class="mb-5">
-          <label class="block text-xs text-[#8b949e] mb-2">常用名冊快速點選（已在名單內自動隱藏）：</label>
-          <div id="quickAddChips" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <!-- 手動補登框 -->
-        <div class="mb-5 bg-[#1b1f23] border border-[#37414a] p-3.5 rounded">
-          <label class="block text-xs text-[#8b949e] mb-2">手動補登：</label>
-          <div class="flex gap-2 mb-2">
-            <input id="newName" type="text" placeholder="姓名 / 暱稱" class="w-1/3 text-xs nordic-input px-2.5 py-1.5">
-            <input id="newEmail" type="text" placeholder="電子信箱" class="w-2/3 text-xs nordic-input px-2.5 py-1.5">
-          </div>
-          <div class="flex justify-between items-center">
-            <div class="space-x-1">
-              <button onclick="appendDomain('@hotmail.com')" class="text-[11px] text-[#8b949e] bg-[#272e35] hover:bg-[#37414a] px-2 py-0.5 rounded border border-[#37414a]">@hotmail.com</button>
-              <button onclick="appendDomain('@outlook.com')" class="text-[11px] text-[#8b949e] bg-[#272e35] hover:bg-[#37414a] px-2 py-0.5 rounded border border-[#37414a]">@outlook.com</button>
-            </div>
-            <button onclick="manualAdd()" class="text-xs btn-slate px-3 py-1 font-medium">加入名冊</button>
-          </div>
-        </div>
-
-        <!-- 名冊明細 -->
-        <div>
-          <div class="flex justify-between items-center mb-2.5">
-            <span class="text-xs text-[#8b949e]">當前名冊清單</span>
-            <button onclick="simulateConfirm()" class="text-[11px] text-[#58a6ff] hover:underline">全體出席確認</button>
-          </div>
-          <ul id="attendeeList" class="divide-y divide-[#37414a] text-xs max-h-56 overflow-y-auto pr-1"></ul>
-        </div>
-      </section>
-
-    </div>
-
-    <!-- 右側欄：語音收音與紀錄生成 -->
-    <div class="lg:col-span-7 space-y-6">
-
-      <!-- 03 即時收音與逐字檢視 -->
-      <section class="nordic-card">
-        <div class="flex justify-between items-center mb-4 pb-2.5 border-b border-[#37414a]">
-          <div class="flex items-center gap-2">
-            <h2 class="text-xs font-semibold tracking-wider text-[#e6edf3]">
-              <span class="text-[#2ea043] font-mono">[03]</span> 會議收音與即時文字
-            </h2>
-            <span id="micStatusIndicator" class="text-[10px] px-2 py-0.5 bg-[#1b1f23] text-[#8b949e] border border-[#37414a] rounded">待命中</span>
-          </div>
-          <div class="flex gap-2">
-            <button onclick="clearTranscript()" class="text-xs btn-slate px-3 py-1">清除內容</button>
-            <button id="recBtn" onclick="toggleRecording()" class="text-xs btn-forest px-3.5 py-1 flex items-center gap-1.5 font-medium">
-              <span id="recDot" class="w-2 h-2 rounded-full bg-white"></span>
-              <span id="recText">啟動收音</span>
-            </button>
-          </div>
-        </div>
-
-        <div id="micErrorMsg" class="hidden bg-[#381c1c] border border-[#8b2e2e] text-[#f85149] p-3 text-xs mb-3 rounded">
-          未取得麥克風授權或當前瀏覽器不支援即時收音，您可直接在下方手動鍵入討論內容。
-        </div>
-
-        <!-- 逐字稿顯示框：支援即時串流輸入反饋 -->
-        <div class="relative mb-3">
-          <textarea id="transcriptBox" rows="6" placeholder="點擊「啟動收音」開始講話，收到的字句會即時浮現在此處..." class="w-full text-xs nordic-input p-3.5 leading-relaxed resize-y"></textarea>
-          <!-- 即時辨識字句浮動提示（視覺反饋） -->
-          <div id="liveStreamBubble" class="hidden absolute bottom-3 left-3 right-3 text-xs bg-[#1b1f23]/95 border border-[#37414a] text-[#8b949e] px-3 py-1.5 italic pointer-events-none truncate rounded">
-            即時辨識中：<span id="interimText" class="text-[#e6edf3] font-normal not-italic"></span>
-          </div>
-        </div>
-
-        <div class="flex gap-2">
-          <select id="targetLang" class="nordic-input text-xs px-3 py-2 text-[#e6edf3]">
-            <option value="國語 (繁體中文)">繁體中文（標準）</option>
-            <option value="英文">英語 (English)</option>
-            <option value="日文">日本語 (Japanese)</option>
-            <option value="德文">德語 (Deutsch)</option>
-            <option value="法文">法語 (Français)</option>
-            <option value="義大利文">義大利語 (Italiano)</option>
-            <option value="西班牙文">西班牙語 (Español)</option>
-          </select>
-          <button onclick="generateMinutes()" class="flex-1 btn-forest text-xs py-2 font-medium tracking-wider">
-            整理並產出會議紀錄
-          </button>
-        </div>
-      </section>
-
-      <!-- 04 成果審閱與通訊發送 -->
-      <section class="nordic-card">
-        <div class="flex justify-between items-baseline mb-4 pb-2.5 border-b border-[#37414a]">
-          <h2 class="text-xs font-semibold tracking-wider text-[#e6edf3]">
-            <span class="text-[#2ea043] font-mono">[04]</span> 會議紀錄審閱與寄送
-          </h2>
-          <span class="text-xs text-[#8b949e]">發送至 bird4793@livemail.tw</span>
-        </div>
-
-        <textarea id="minutesOutput" rows="10" placeholder="點擊「整理並產出會議紀錄」後，將根據收音全文與選擇之語言規格整合成正式文稿..." class="w-full text-xs font-mono nordic-input p-3.5 mb-4 leading-relaxed"></textarea>
-
-        <div class="flex gap-3">
-          <button onclick="sendMinutesEmail()" class="flex-1 btn-forest text-xs py-2.5 tracking-wider font-medium">
-            確認核可，直接發信通知出席者
-          </button>
-          <button onclick="copyMinutes()" class="btn-slate text-xs px-4 py-2.5">
-            複製文稿
-          </button>
-        </div>
-        <p id="sendResult" class="text-xs text-[#3fb950] bg-[#1f3627] border border-[#238636]/50 p-3 mt-3.5 rounded hidden"></p>
-      </section>
-
-    </div>
-  </main>
-
-  <script>
-    const presetCandidatePool = [
-      { name: '隔壁部門偷吃零食的小美', email: 'snack.mei@hotmail.com', defaultTag: '偷吃零食' },
-      { name: '路過被抓進來的倒楣工讀生', email: 'parttime@outlook.com', defaultTag: '等待救援' },
-      { name: '只會說okok但不知道要幹嘛的主管', email: 'boss.ok@hotmail.com', defaultTag: '精神列席' },
-      { name: '天天都在減肥但下午必訂手搖飲的Peggy', email: 'boba.peggy@outlook.com', defaultTag: '手搖成癮' },
-      { name: '偷用公司印表機印小說的阿明', email: 'printer.ming@hotmail.com', defaultTag: '紙張小偷' },
-      { name: '開會都在偷看股票的隔壁老王', email: 'stock.wang@outlook.com', defaultTag: '被套牢中' }
-    ];
-
-    let attendees = [
-      { name: '阿鳥 (主辦)', email: 'bird4793@livemail.tw', confirmed: true, tag: '主辦人' },
-      { name: '隔壁部門偷吃零食的小美', email: 'snack.mei@hotmail.com', confirmed: true, tag: '偷吃零食' },
-      { name: '路過被抓進來的倒楣工讀生', email: 'parttime@outlook.com', confirmed: false, tag: '等待救援' }
-    ];
-
-    function renderQuickAddChips() {
-      const chipContainer = document.getElementById('quickAddChips');
-      chipContainer.innerHTML = '';
-
-      const currentEmails = attendees.map(a => a.email.toLowerCase());
-      const availableCandidates = presetCandidatePool.filter(c => !currentEmails.includes(c.email.toLowerCase()));
-
-      if (availableCandidates.length === 0) {
-        chipContainer.innerHTML = '<span class="text-xs text-[#8b949e]">常用名冊人員皆已加入名單</span>';
-        return;
-      }
-
-      availableCandidates.forEach(person => {
-        const btn = document.createElement('button');
-        btn.className = 'text-xs bg-[#1b1f23] hover:bg-[#37414a] text-[#c9d1d9] border border-[#37414a] px-2.5 py-1 rounded transition flex items-center gap-1.5';
-        btn.innerHTML = `<span class="text-[#3fb950] font-semibold">+</span> ${person.name}`;
-        btn.onclick = () => quickAdd(person.name, person.email, person.defaultTag);
-        chipContainer.appendChild(btn);
-      });
-    }
-
-    function renderAttendees() {
-      const list = document.getElementById('attendeeList');
-      list.innerHTML = '';
-      attendees.forEach((p, idx) => {
-        const badgeStyle = p.confirmed ? 'bg-[#1f3627] text-[#3fb950] border border-[#238636]/50' : 'bg-[#38281a] text-[#d29922] border border-[#bb8009]/40';
-        list.innerHTML += `
-          <li class="py-2.5 flex items-center justify-between">
-            <label class="flex items-center gap-2.5 cursor-pointer">
-              <input type="checkbox" ${p.confirmed ? 'checked' : ''} onchange="toggleConfirm(${idx})" class="rounded border-[#37414a] text-[#2ea043] focus:ring-0">
-              <div>
-                <p class="font-normal text-[#e6edf3] text-xs">${p.name}</p>
-                <p class="text-[11px] text-[#8b949e]">${p.email}</p>
-              </div>
-            </label>
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] px-2 py-0.5 rounded font-normal ${badgeStyle}">${p.tag}</span>
-              ${idx !== 0 ? `<button onclick="removeAttendee(${idx})" class="text-[11px] text-[#8b949e] hover:text-[#f85149]" title="移除">✕</button>` : ''}
-            </div>
-          </li>
-        `;
-      });
-      renderQuickAddChips();
-    }
-
-    function toggleConfirm(idx) {
-      attendees[idx].confirmed = !attendees[idx].confirmed;
-      attendees[idx].tag = attendees[idx].confirmed ? '已出席' : '未出席';
-      renderAttendees();
-    }
-
-    function quickAdd(name, email, tag = '現場補登') {
-      if (attendees.some(a => a.email.toLowerCase() === email.toLowerCase())) return;
-      attendees.push({ name, email, confirmed: true, tag });
-      renderAttendees();
-    }
-
-    function removeAttendee(idx) {
-      attendees.splice(idx, 1);
-      renderAttendees();
-    }
-
-    function appendDomain(domain) {
-      const input = document.getElementById('newEmail');
-      if (!input.value.includes('@')) input.value += domain;
-    }
-
-    function manualAdd() {
-      const name = document.getElementById('newName').value.trim();
-      const email = document.getElementById('newEmail').value.trim();
-      if (!name || !email) return alert('請完整填寫姓名與電子信箱');
-      quickAdd(name, email, '手動補登');
-      document.getElementById('newName').value = '';
-      document.getElementById('newEmail').value = '';
-    }
-
-    function simulateConfirm() {
-      attendees.forEach(a => {
-        a.confirmed = true;
-        a.tag = '已確認';
-      });
-      renderAttendees();
-    }
-
-    function clearTranscript() {
-      document.getElementById('transcriptBox').value = '';
-      document.getElementById('liveStreamBubble').classList.add('hidden');
-    }
-
-    async function sendInvites() {
-      const emails = document.getElementById('inviteEmails').value.trim();
-      const title = document.getElementById('meetingTitle').value.trim();
-      const status = document.getElementById('inviteStatus');
-      if (!emails) return alert('請輸入收件人信箱');
-
-      status.innerHTML = '正在傳送會議邀請通訊...';
-      status.classList.remove('hidden');
-
-      try {
-        const webhookUrl = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
-        await fetch(webhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: 'bird4793@livemail.tw',
-            title: `【行事曆邀請】${title}`,
-            content: `阿鳥 您好：\n\n已建立會議項目：「${title}」。\n\n- MeetPulse AI`
-          })
-        });
-        status.innerHTML = `邀請函已發送至：bird4793@livemail.tw`;
-      } catch(e) {
-        status.innerHTML = `通訊異常，請檢查網路連線。`;
-      }
-    }
-
-    // 語音收音核心：支援即時串流暫存文字 (Interim Results)
-    let recognition;
-    let isRecording = false;
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = 'zh-TW';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onresult = (event) => {
-          let interimTranscript = '';
-          const box = document.getElementById('transcriptBox');
-          const bubble = document.getElementById('liveStreamBubble');
-          const interimSpan = document.getElementById('interimText');
-
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const transcriptText = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              box.value += (box.value ? ' ' : '') + transcriptText;
-              interimTranscript = '';
-            } else {
-              interimTranscript += transcriptText;
-            }
-          }
-
-          if (interimTranscript.trim().length > 0) {
-            bubble.classList.remove('hidden');
-            interimSpan.textContent = interimTranscript;
-          } else {
-            bubble.classList.add('hidden');
-          }
-        };
-
-        recognition.onerror = () => {
-          document.getElementById('micErrorMsg').classList.remove('hidden');
-          stopRecordingUI();
-        };
-
-        recognition.onend = () => {
-          if (isRecording) { try { recognition.start(); } catch(e) {} }
-        };
-      }
-    } catch(e) {}
-
-    function toggleRecording() {
-      const btn = document.getElementById('recBtn');
-      const text = document.getElementById('recText');
-      const dot = document.getElementById('recDot');
-      const indicator = document.getElementById('micStatusIndicator');
-      const errBox = document.getElementById('micErrorMsg');
-
-      if (!recognition) {
-        errBox.classList.remove('hidden');
-        return alert('瀏覽器未支援語音辨識，請使用 Chrome 瀏覽器或手動輸入。');
-      }
-
-      errBox.classList.add('hidden');
-
-      if (!isRecording) {
-        try {
-          recognition.start();
-          isRecording = true;
-          btn.style.backgroundColor = '#b91c1c';
-          dot.className = 'w-2 h-2 rounded-full bg-white recording-pulse';
-          text.textContent = '收音中 (點擊結束)';
-          indicator.textContent = '即時收音中';
-          indicator.className = 'text-[10px] px-2 py-0.5 bg-[#381c1c] text-[#f85149] border border-[#8b2e2e] rounded';
-        } catch (e) {
-          errBox.classList.remove('hidden');
-        }
-      } else {
-        stopRecordingUI();
-      }
-    }
-
-    function stopRecordingUI() {
-      isRecording = false;
-      if (recognition) { try { recognition.stop(); } catch(e) {} }
-      const btn = document.getElementById('recBtn');
-      const text = document.getElementById('recText');
-      const dot = document.getElementById('recDot');
-      const indicator = document.getElementById('micStatusIndicator');
+// 語音收音（支援即時暫存文字）
+let recognition, isRecording = false;
+try {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    recognition = new SR();
+    recognition.lang = 'zh-TW';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event) => {
+      let interim = '';
+      const box = document.getElementById('transcriptBox');
       const bubble = document.getElementById('liveStreamBubble');
-
-      if (bubble) bubble.classList.add('hidden');
-      if (btn) {
-        btn.style.backgroundColor = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) { box.value += (box.value ? ' ' : '') + t; interim = ''; }
+        else interim += t;
       }
-      if (dot) dot.className = 'w-2 h-2 rounded-full bg-white';
-      if (text) text.textContent = '啟動收音';
-      if (indicator) {
-        indicator.textContent = '待命中';
-        indicator.className = 'text-[10px] px-2 py-0.5 bg-[#1b1f23] text-[#8b949e] border border-[#37414a] rounded';
-      }
-    }
+      if (interim.trim()) { bubble.classList.remove('hidden'); document.getElementById('interimText').textContent = interim; }
+      else bubble.classList.add('hidden');
+    };
+    recognition.onerror = () => { document.getElementById('micErrorMsg').classList.remove('hidden'); stopRecordingUI(); };
+    recognition.onend = () => { if (isRecording) { try { recognition.start(); } catch (e) {} } };
+  }
+} catch (e) {}
 
-    async function generateMinutes() {
-      const title = document.getElementById('meetingTitle').value;
-      const time = document.getElementById('meetingTime').value.replace('T', ' ');
-      const transcript = document.getElementById('transcriptBox').value.trim();
-      const targetLang = document.getElementById('targetLang').value;
-      const output = document.getElementById('minutesOutput');
+function toggleRecording() {
+  const btn = document.getElementById('recBtn');
+  const errBox = document.getElementById('micErrorMsg');
+  if (!recognition) {
+    errBox.classList.remove('hidden');
+    return alert('瀏覽器未支援語音辨識，請使用 Chrome 瀏覽器或手動輸入。');
+  }
+  errBox.classList.add('hidden');
+  if (!isRecording) {
+    try {
+      recognition.start();
+      isRecording = true;
+      btn.classList.add('recording');
+      document.getElementById('recText').textContent = '收音中（點擊結束）';
+      const ind = document.getElementById('micStatusIndicator');
+      ind.textContent = '即時收音中';
+      ind.className = 'status live';
+    } catch (e) { errBox.classList.remove('hidden'); }
+  } else stopRecordingUI();
+}
 
-      if (!transcript) return alert('請先啟動收音或輸入會議討論文字。');
+function stopRecordingUI() {
+  isRecording = false;
+  if (recognition) { try { recognition.stop(); } catch (e) {} }
+  document.getElementById('liveStreamBubble').classList.add('hidden');
+  document.getElementById('recBtn').classList.remove('recording');
+  document.getElementById('recText').textContent = '啟動收音';
+  const ind = document.getElementById('micStatusIndicator');
+  ind.textContent = '待命中';
+  ind.className = 'status';
+}
 
-      const presentList = attendees.filter(a => a.confirmed).map(a => `${a.name} <${a.email}>`).join('、');
-      const apiKey = document.getElementById('apiKeyInput').value.trim();
-      output.value = `正在依據 [${targetLang}] 規範進行文稿梳理整理中...`;
+// 各語言的紀錄版型：[標題, 時間, 出席, 語言標示, 語言名, 決議, 要點1, 要點2, 內容, 待辦, 負責, 引號左, 引號右, 序號]
+const MINUTES_FORMATS = {
+  '英文': ['[MEETING SUMMARY]', 'Date & Time', 'Attendees', 'Language', 'English', 'Key Decisions', 'Priority Item', 'Follow-up', 'Discussion Content', 'Action Plan', 'Owner: 阿鳥 & Confirmed Attendees', '"', '"', ['1.', '2.', '3.']],
+  '德文': ['[PROTOKOLL DER SITZUNG]', 'Datum & Zeit', 'Teilnehmer', 'Sprache', 'Deutsch', 'Beschlüsse', 'Hauptpunkt', 'Maßnahme', 'Inhalt', 'Aufgaben', 'Verantwortlich: 阿鳥 & Teilnehmer', '"', '"', ['1.', '2.', '3.']],
+  '法文': ['[COMPTE RENDU DE RÉUNION]', 'Date & Heure', 'Participants', 'Langue', 'Français', 'Décisions Clés', 'Point 1', 'Point 2', 'Contenu des Discussions', 'Actions à Mener', 'Responsable: 阿鳥 et les participants', '"', '"', ['1.', '2.', '3.']],
+  '義大利文': ['[VERBALE DI RIUNIONE]', 'Data & Ora', 'Partecipanti', 'Lingua', 'Italiano', 'Decisioni Chiave', 'Punto 1', 'Punto 2', 'Trascrizione', 'Azioni da Intraprendere', 'Responsabile: 阿鳥 e partecipanti', '"', '"', ['1.', '2.', '3.']],
+  '西班牙文': ['[ACTA DE LA REUNIÓN]', 'Fecha y Hora', 'Asistentes', 'Idioma', 'Español', 'Decisiones Principales', 'Punto 1', 'Punto 2', 'Transcripción', 'Tareas Pendientes', 'Responsable: 阿鳥 y asistentes', '"', '"', ['1.', '2.', '3.']],
+  '日文': ['【会議議事録】', '日時', '出席者', '表記言語', '日本語', '決定事項および重要討議点', '重要方針', '継続検討', '討議発言内容', '実行課題 (Action Items)', '担当：阿鳥 および 出席者各位', '「', '」', ['一、', '二、', '三、']],
+  '國語 (繁體中文)': ['【會議紀錄】', '時間', '出席人員', '輸出格式', '繁體中文', '核心決議與重要討論方針', '首要共識', '後續推進', '會議討論內容全文', '待辦事項追蹤 (Action Items)', '窗口：阿鳥 及全體實際出席人員', '「', '」', ['一、', '二、', '三、']]
+};
 
-      if (apiKey) {
-        try {
-          const prompt = `你是一位專業且風格簡約的會議記錄秘書。請根據以下逐字內容，產出條理清晰、語調質樸自然的正式會議紀錄，並以「${targetLang}」呈現全文：
+async function generateMinutes() {
+  const title = document.getElementById('meetingTitle').value;
+  const time = document.getElementById('meetingTime').value.replace('T', ' ');
+  const transcript = document.getElementById('transcriptBox').value.trim();
+  const targetLang = document.getElementById('targetLang').value;
+  const output = document.getElementById('minutesOutput');
+  if (!transcript) return alert('請先啟動收音或輸入會議討論文字。');
+
+  const presentList = attendees.filter(a => a.confirmed).map(a => `${a.name} <${a.email}>`).join('、');
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  output.value = `正在依據 [${targetLang}] 規範整理文稿…`;
+
+  if (apiKey) {
+    try {
+      const prompt = `你是一位專業且風格簡約的會議記錄秘書。請根據以下逐字內容，產出條理清晰、語調質樸自然的正式會議紀錄，並以「${targetLang}」呈現全文：
 會議主題：${title}
 召開時間：${time}
 與會人員：${presentList}
@@ -508,178 +395,187 @@ ${transcript}
 一、 基本資訊
 二、 核心決議與共識 (Key Decisions)
 三、 執行行動清單 (Action Items)`;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const data = await res.json();
+      output.value = data.candidates[0].content.parts[0].text;
+      return;
+    } catch (e) { console.error(e); }
+  }
 
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-          });
-          const data = await res.json();
-          output.value = data.candidates[0].content.parts[0].text;
-          return;
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      setTimeout(() => {
-        const lines = transcript.split(/[。！？\n]/).filter(s => s.trim().length > 0);
-        const p1 = lines[0] ? lines[0].trim() : '確立各項重點推進工作';
-        const p2 = lines[1] ? lines[1].trim() : '依據當前共識落實各階段時程';
-
-        if (targetLang === '英文') {
-          output.value = `[MEETING SUMMARY] ${title}
+  setTimeout(() => {
+    const lines = transcript.split(/[。！？\n]/).filter(s => s.trim().length > 0);
+    const p1 = lines[0] ? lines[0].trim() : '確立各項重點推進工作';
+    const p2 = lines[1] ? lines[1].trim() : '依據當前共識落實各階段時程';
+    const f = MINUTES_FORMATS[targetLang] || MINUTES_FORMATS['國語 (繁體中文)'];
+    const [head, dl, al, ll, ln, s1, k1, k2, s2, s3, owner, ql, qr, n] = f;
+    output.value = `${head} ${title}
 --------------------------------------------------
-Date & Time : ${time}
-Attendees   : ${presentList}
-Language    : English
+${dl}: ${time}
+${al}: ${presentList}
+${ll}: ${ln}
 
-1. Key Decisions
-- Priority Item : ${p1}
-- Follow-up     : ${p2}
+${n[0]} ${s1}
+- ${k1}: ${p1}
+- ${k2}: ${p2}
 
-2. Discussion Content
-"${transcript}"
+${n[1]} ${s2}
+${ql}${transcript}${qr}
 
-3. Action Plan
-- Item  : Execute as agreed in discussion
-  Owner : 阿鳥 & Confirmed Attendees`;
-        } else if (targetLang === '德文') {
-          output.value = `[PROTOKOLL DER SITZUNG] ${title}
---------------------------------------------------
-Datum & Zeit: ${time}
-Teilnehmer  : ${presentList}
-Sprache     : Deutsch
+${n[2]} ${s3}
+- ${owner}`;
+  }, 400);
+}
 
-1. Beschlüsse
-- Hauptpunkt: ${p1}
-- Maßnahme  : ${p2}
+async function sendMinutesEmail() {
+  const minutes = document.getElementById('minutesOutput').value.trim();
+  const title = document.getElementById('meetingTitle').value.trim();
+  if (!minutes) return alert('請先產出會議紀錄。');
+  const box = document.getElementById('sendResult');
+  box.innerHTML = '正在傳送會議紀錄…';
+  box.classList.remove('hidden');
+  try {
+    await fetch(WEBHOOK, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'bird4793@livemail.tw', title: title, content: minutes })
+    });
+    box.innerHTML = '會議紀錄已送達：<strong>bird4793@livemail.tw</strong>';
+  } catch (error) {
+    box.innerHTML = '傳送失敗，請確認網路連線狀態。';
+  }
+}
 
-2. Inhalt
-"${transcript}"
+function copyMinutes() {
+  const output = document.getElementById('minutesOutput');
+  output.select();
+  document.execCommand('copy');
+  alert('會議紀錄已複製至剪貼簿。');
+}
 
-3. Aufgaben
-- Verantwortlich: 阿鳥 & Teilnehmer`;
-        } else if (targetLang === '法文') {
-          output.value = `[COMPTE RENDU DE RÉUNION] ${title}
---------------------------------------------------
-Date & Heure: ${time}
-Participants: ${presentList}
-Langue      : Français
+renderAttendees();
+</script>
+<script>
+// ===== 多場會議：資料、儲存、倒數 =====
+const STORE='meetpulse.v1';
+let meetings=[],currentId=null,loading=false,lastSig='';
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const cur=()=>meetings.find(m=>m.id===currentId);
+function persist(){try{localStorage.setItem(STORE,JSON.stringify({meetings,currentId}))}catch(e){}}
 
-1. Décisions Clés
-- Point 1: ${p1}
-- Point 2: ${p2}
+function saveCurrent(){
+  const m=cur(); if(loading||!m) return;
+  m.title=$('meetingTitle').value; m.time=$('meetingTime').value;
+  m.dur=Math.max(5,parseInt($('meetingDur').value)||30);
+  m.emails=$('inviteEmails').value; m.attendees=attendees;
+  m.transcript=$('transcriptBox').value; m.minutes=$('minutesOutput').value;
+  persist();
+}
+const _ra=renderAttendees;
+renderAttendees=function(){_ra();saveCurrent();};
 
-2. Contenu des Discussions
-"${transcript}"
+function loadMeeting(id){
+  const m=meetings.find(x=>x.id===id); if(!m) return;
+  loading=true; currentId=id;
+  $('meetingTitle').value=m.title; $('meetingTime').value=m.time; $('meetingDur').value=m.dur;
+  $('inviteEmails').value=m.emails; $('transcriptBox').value=m.transcript; $('minutesOutput').value=m.minutes;
+  attendees=m.attendees;
+  ['inviteStatus','sendResult'].forEach(k=>$(k).classList.add('hidden'));
+  renderAttendees(); loading=false; persist(); lastSig=''; tick();
+}
+function selectMeeting(id){
+  if(id===currentId) return;
+  if(isRecording) return alert('收音進行中，請先結束');
+  saveCurrent(); loadMeeting(id);
+}
+function newMeeting(){
+  if(isRecording) return alert('收音進行中，請先結束');
+  saveCurrent();
+  const d=new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
+  const m={id:'m'+Date.now(),title:'新會議',time:toInput(d),dur:30,emails:'bird4793@livemail.tw',
+    attendees:[{name:'阿鳥 (主辦)',email:'bird4793@livemail.tw',confirmed:true,tag:'主辦人'}],transcript:'',minutes:''};
+  meetings.push(m); loadMeeting(m.id);
+  $('meetingTitle').focus(); $('meetingTitle').select();
+}
+function deleteMeeting(id,ev){
+  ev.stopPropagation();
+  if(meetings.length===1) return alert('至少要保留一場會議');
+  if(id===currentId&&isRecording) return alert('收音進行中，請先結束');
+  if(!confirm('確定刪除這場會議？')) return;
+  meetings=meetings.filter(m=>m.id!==id);
+  if(id===currentId) loadMeeting(meetings[0].id); else {persist();lastSig='';tick();}
+}
 
-3. Actions à Mener
-- Responsable: 阿鳥 et les participants`;
-        } else if (targetLang === '義大利文') {
-          output.value = `[VERBALE DI RIUNIONE] ${title}
---------------------------------------------------
-Data & Ora  : ${time}
-Partecipanti: ${presentList}
-Lingua      : Italiano
+function info(m){
+  let st=m.time?new Date(m.time).getTime():8e15; if(isNaN(st)) st=8e15;
+  const en=st+m.dur*6e4, now=Date.now();
+  return {m,st,en,state:now>=en?'ended':now>=st?'live':'next'};
+}
+function short(ms){
+  const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),mi=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);
+  return d?`${d}天${h}時後`:h?`${h}時${mi}分後`:`${pad(mi)}:${pad(s)} 後`;
+}
+function row(i,on){
+  const m=i.m;
+  return `<li class="mt${on?' on':''}" onclick="selectMeeting('${m.id}')">
+    <div class="t"><b>${esc(m.title||'（未命名）')}</b><span>${m.time?m.time.replace('T',' '):'未設定時間'}　${m.dur} 分鐘</span></div>
+    ${i.clash?'<span class="flag">衝突</span>':''}<span class="s" data-s="${m.id}"></span>
+    <button class="x" onclick="deleteMeeting('${m.id}',event)" title="刪除">✕</button></li>`;
+}
+function tick(){
+  const now=Date.now(), all=meetings.map(info);
+  const open=all.filter(i=>i.state!=='ended').sort((a,b)=>a.st-b.st||a.m.id.localeCompare(b.m.id));
+  const done=all.filter(i=>i.state==='ended').sort((a,b)=>b.st-a.st);
+  open.forEach(i=>i.clash=open.some(o=>o!==i&&(o.st<i.st||(o.st===i.st&&o.m.id<i.m.id))&&o.en>i.st));
 
-1. Decisioni Chiave
-- Punto 1: ${p1}
-- Punto 2: ${p2}
-
-2. Trascrizione
-"${transcript}"
-
-3. Azioni da Intraprendere
-- Responsabile: 阿鳥 e partecipanti`;
-        } else if (targetLang === '西班牙文') {
-          output.value = `[ACTA DE LA REUNIÓN] ${title}
-----------------------------------------
-Fecha y Hora: ${time}
-Asistentes  : ${presentList}
-Idioma      : Español
-
-1. Decisiones Principales
-- Punto 1: ${p1}
-- Punto 2: ${p2}
-
-2. Transcripción
-"${transcript}"
-
-3. Tareas Pendientes
-- Responsable: 阿鳥 y asistentes`;
-        } else if (targetLang === '日文') {
-          output.value = `【会議議事録】${title}
---------------------------------------------------
-日時  ：${time}
-出席者 ：${presentList}
-表記言語：日本語
-
-一、 決定事項および重要討議点
-・重要方針：${p1}
-・継続検討：${p2}
-
-二、 討議発言内容
-「${transcript}」
-
-三、 実行課題 (Action Items)
-・担当：阿鳥 および 出席者各位`;
-        } else {
-          output.value = `【會議紀錄】${title}
---------------------------------------------------
-時間  ：${time}
-出席人員：${presentList}
-輸出格式：繁體中文
-
-一、 核心決議與重要討論方針
-1. 首要共識：${p1}
-2. 後續推進：${p2}
-
-二、 會議討論內容全文
-「${transcript}」
-
-三、 待辦事項追蹤 (Action Items)
-- 項目：依據上述共識落實推進各項排程
-  窗口：阿鳥 及全體實際出席人員`;
-        }
-      }, 400);
+  // 主倒數：最早尚未結束的會議
+  const t=open[0], el=$('countdown');
+  if(!t){ $('heroLabel').textContent=''; el.textContent='沒有待開的會議'; $('heroTitle').textContent=''; $('heroTime').textContent=''; }
+  else {
+    $('heroTitle').textContent=t.m.title;
+    $('heroTime').textContent=(t.m.time?t.m.time.replace('T',' '):'')+`（${t.m.dur} 分鐘）`;
+    if(t.st>=8e15){ $('heroLabel').textContent=''; el.textContent='尚未設定時間'; }
+    else if(t.state==='live'){
+      const e=now-t.st; $('heroLabel').textContent='會議進行中，已進行';
+      el.innerHTML=`${Math.floor(e/6e4)}<small>分</small>${pad(Math.floor(e%6e4/1e3))}<small>秒</small>`;
+    } else {
+      const d=t.st-now,dd=Math.floor(d/864e5),h=Math.floor(d%864e5/36e5),mi=Math.floor(d%36e5/6e4),s=Math.floor(d%6e4/1e3);
+      $('heroLabel').textContent='距離會議開始';
+      el.innerHTML=(dd?`${dd}<small>天</small>`:'')+`${pad(h)}<small>時</small>${pad(mi)}<small>分</small>${pad(s)}<small>秒</small>`;
     }
+  }
 
-    async function sendMinutesEmail() {
-      const minutes = document.getElementById('minutesOutput').value.trim();
-      const title = document.getElementById('meetingTitle').value.trim();
-      if (!minutes) return alert('請先產出會議紀錄。');
+  // 列表：結構變了才重建，之後只更新每列的倒數文字
+  const sig=JSON.stringify([open.map(i=>[i.m.id,i.m.title,i.m.time,i.m.dur,i.clash]),done.map(i=>[i.m.id,i.m.title,i.m.time,i.m.dur]),currentId]);
+  if(sig!==lastSig){
+    lastSig=sig;
+    $('meetingList').innerHTML=open.map(i=>row(i,i.m.id===currentId)).join('')||'<li class="muted" style="padding:10px 0">目前沒有待開的會議</li>';
+    $('endedList').innerHTML=done.map(i=>row(i,i.m.id===currentId)).join('');
+    $('endedCount').textContent=done.length;
+    $('endedBox').classList.toggle('hidden',!done.length);
+  }
+  all.forEach(i=>{
+    const s=document.querySelector(`[data-s="${i.m.id}"]`); if(!s) return;
+    s.className='s'+(i.state==='live'?' live':'');
+    s.textContent=i.state==='ended'?'已結束':i.state==='live'?'進行中':i.st>=8e15?'':short(i.st-now);
+  });
+}
 
-      const resBox = document.getElementById('sendResult');
-      resBox.innerHTML = '正在傳送會議紀錄至通訊信箱...';
-      resBox.classList.remove('hidden');
+['meetingTime','meetingTitle','meetingDur','inviteEmails','transcriptBox','minutesOutput'].forEach(id=>
+  $(id).addEventListener('input',()=>{saveCurrent();tick();}));
+setInterval(saveCurrent,2000);
+setInterval(tick,1000);
 
-      try {
-        const webhookUrl = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
-        await fetch(webhookUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: 'bird4793@livemail.tw',
-            title: title,
-            content: minutes
-          })
-        });
-        resBox.innerHTML = `會議紀錄已送達：<strong>bird4793@livemail.tw</strong>`;
-      } catch (error) {
-        resBox.innerHTML = `傳送失敗，請確認網路連線狀態。`;
-      }
-    }
-
-    function copyMinutes() {
-      const output = document.getElementById('minutesOutput');
-      output.select();
-      document.execCommand('copy');
-      alert('會議紀錄已複製至剪貼簿。');
-    }
-
-    renderAttendees();
-  </script>
+(function init(){
+  let s=null; try{s=JSON.parse(localStorage.getItem(STORE))}catch(e){}
+  if(s&&s.meetings&&s.meetings.length) meetings=s.meetings;
+  else { meetings=[{id:'m1',title:$('meetingTitle').value,time:$('meetingTime').value,dur:30,emails:$('inviteEmails').value,attendees:attendees,transcript:'',minutes:''}]; s={currentId:'m1'}; }
+  loadMeeting(meetings.some(m=>m.id===s.currentId)?s.currentId:meetings[0].id);
+})();
+</script>
 </body>
 </html>
