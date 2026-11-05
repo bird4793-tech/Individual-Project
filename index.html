@@ -3,164 +3,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MeetPulse AI - MUJI Edition</title>
+  <title>MeetPulse - 會議紀錄與工作彙整</title>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body style="background-color: #f7f5f0 !important; color: #2e2c29; font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Hiragino Sans GB', 'Microsoft JhengHei', sans-serif; min-height: 100vh; padding: 24px; letter-spacing: 0.03em;">
+  <style>
+    :root {
+      --paper-bg: #f4f1ea;
+      --card-bg: #fbfaf8;
+      --border-line: #dcd6cb;
+      --text-main: #33312e;
+      --text-muted: #7d7871;
+      --muji-red: #7f2227;
+      --muji-red-hover: #691b20;
+      --dark-btn: #383533;
+      --dark-btn-hover: #242220;
+    }
 
-  <!-- 頂部導覽列 -->
-  <header style="max-width: 1024px; margin: 0 auto 36px auto; padding-bottom: 20px; border-bottom: 1px solid #e3ded6; display: flex; flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    body {
+      background-color: var(--paper-bg) !important;
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      letter-spacing: 0.04em;
+      line-height: 1.6;
+    }
+
+    /* 無印良品紙張卡片風格：純平、細線、微暖白 */
+    .muji-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      padding: 24px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    .muji-input {
+      background-color: #ffffff;
+      border: 1px solid var(--border-line);
+      border-radius: 2px;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+    .muji-input:focus {
+      outline: none;
+      border-color: #8c857b;
+      background-color: #ffffff;
+    }
+
+    /* 印泥暗紅色主要按鈕 */
+    .btn-muji-red {
+      background-color: var(--muji-red);
+      color: #ffffff;
+      border: none;
+      border-radius: 2px;
+      transition: background-color 0.15s ease;
+    }
+    .btn-muji-red:hover {
+      background-color: var(--muji-red-hover);
+    }
+
+    /* 炭黑樸實次要按鈕 */
+    .btn-muji-dark {
+      background-color: var(--dark-btn);
+      color: #ffffff;
+      border: none;
+      border-radius: 2px;
+      transition: background-color 0.15s ease;
+    }
+    .btn-muji-dark:hover {
+      background-color: var(--dark-btn-hover);
+    }
+
+    /* 淺麻灰次要按鈕 */
+    .btn-muji-secondary {
+      background-color: #e8e4dc;
+      color: #4a4642;
+      border: 1px solid #d4cec3;
+      border-radius: 2px;
+      transition: all 0.15s ease;
+    }
+    .btn-muji-secondary:hover {
+      background-color: #ded9d0;
+      color: #2e2c29;
+    }
+
+    /* 錄音狀態質樸點綴 */
+    .recording-pulse {
+      animation: recordBlink 1.4s infinite ease-in-out;
+    }
+    @keyframes recordBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+  </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen">
+
+  <!-- 頂部：無印型錄式標題排版 -->
+  <header class="max-w-5xl mx-auto mb-10 pb-6 border-b border-[#ded8ce] flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
     <div>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="display: inline-block; width: 12px; height: 12px; background-color: #7f2227; border-radius: 2px;"></span>
-        <h1 style="font-size: 20px; font-weight: 600; color: #2e2c29; margin: 0; letter-spacing: 0.05em;">MeetPulse AI</h1>
-        <span style="font-size: 11px; padding: 2px 8px; background-color: #ece7de; color: #69645d; border-radius: 4px;">無印風格</span>
+      <div class="flex items-center gap-3">
+        <span class="w-3 h-3 bg-[#7f2227] inline-block"></span>
+        <h1 class="text-xl font-normal tracking-widest text-[#2e2c29] uppercase">MeetPulse</h1>
+        <span class="text-xs text-[#8c857b] tracking-wider pl-2 border-l border-[#dcd6cb]">會議工作整理系統</span>
       </div>
-      <p style="font-size: 12px; color: #7d776f; margin-top: 6px; margin-bottom: 0;">主辦人：阿鳥 | 簡約會議與即時紀錄整理</p>
+      <p class="text-xs text-[#7d7871] mt-2">主持人：阿鳥 ｜ 簡約語音紀錄與名單自動通訊</p>
     </div>
-    <div>
-      <input id="apiKeyInput" type="password" placeholder="Gemini API Key (選填)" style="font-size: 12px; padding: 8px 12px; background-color: #ffffff; border: 1px solid #dcd6cb; border-radius: 4px; color: #2e2c29; outline: none; width: 190px;">
+    <div class="w-full md:w-auto">
+      <input id="apiKeyInput" type="password" placeholder="API Key (選填)" class="muji-input text-xs px-3 py-2 w-full md:w-44 placeholder-[#a8a39a]">
     </div>
   </header>
 
-  <!-- 主內容區 -->
-  <main style="max-width: 1024px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px;">
+  <!-- 主內容工作區 -->
+  <main class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-    <!-- 左側欄 -->
-    <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- 左側欄：會議規格與與會確認 -->
+    <div class="lg:col-span-5 space-y-6">
 
-      <!-- 01 會議與通知 -->
-      <section style="background-color: #ffffff; border: 1px solid #e5e0d6; border-radius: 6px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #f0ebe1;">
-          <h2 style="font-size: 13px; font-weight: 600; color: #4a4641; margin: 0; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #7f2227;">01</span> 會議與行事曆通知
+      <!-- 01 會議與邀請 -->
+      <section class="muji-card">
+        <div class="flex justify-between items-baseline mb-5 pb-2.5 border-b border-[#eeeae2]">
+          <h2 class="text-xs font-medium tracking-wider text-[#4a4642] flex items-center gap-2">
+            <span class="text-[#7f2227] font-serif">[01]</span> 會議設定與邀請函
           </h2>
-          <span style="font-size: 11px; color: #8e877c;">寄至：bird4793@livemail.tw</span>
+          <span class="text-[11px] text-[#8c857b]">通知目的地：bird4793@livemail.tw</span>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 14px; font-size: 13px;">
+        <div class="space-y-4 text-xs">
           <div>
-            <label style="display: block; font-size: 12px; color: #7d776f; margin-bottom: 6px;">會議主題</label>
-            <input id="meetingTitle" type="text" value="關於下週全體跳槽與火星開分公司可行性緊急閉門會議" style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; color: #2e2c29; font-size: 13px; outline: none;">
+            <label class="block text-[#7d7871] mb-1.5">會議主題</label>
+            <input id="meetingTitle" type="text" value="關於下週全體跳槽與火星開分公司可行性緊急閉門會議" class="w-full muji-input px-3 py-2 text-xs">
           </div>
           <div>
-            <label style="display: block; font-size: 12px; color: #7d776f; margin-bottom: 6px;">時間</label>
-            <input id="meetingTime" type="datetime-local" value="2026-11-18T14:00" style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; color: #2e2c29; font-size: 13px; outline: none;">
+            <label class="block text-[#7d7871] mb-1.5">召開時間</label>
+            <input id="meetingTime" type="datetime-local" value="2026-11-18T14:00" class="w-full muji-input px-3 py-2 text-xs">
           </div>
           <div>
-            <label style="display: block; font-size: 12px; color: #7d776f; margin-bottom: 6px;">收件人信箱</label>
-            <input id="inviteEmails" type="text" value="bird4793@livemail.tw" style="width: 100%; box-sizing: border-box; padding: 8px 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; color: #2e2c29; font-size: 12px; outline: none;">
+            <label class="block text-[#7d7871] mb-1.5">邀請收件清單</label>
+            <input id="inviteEmails" type="text" value="bird4793@livemail.tw" class="w-full muji-input px-3 py-2 text-xs">
           </div>
 
-          <button onclick="sendInvites()" style="width: 100%; background-color: #7f2227; color: #ffffff; font-size: 13px; font-weight: 500; padding: 10px 0; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#681a1f'" onmouseout="this.style.backgroundColor='#7f2227'">
+          <button onclick="sendInvites()" class="w-full btn-muji-red text-xs py-2.5 font-medium tracking-wider">
             發送行事曆邀請
           </button>
-          <p id="inviteStatus" style="font-size: 12px; color: #2e6b4d; background-color: #edf5f0; border: 1px solid #d2e8dc; padding: 10px; border-radius: 4px; text-align: center; margin: 0; display: none;"></p>
+          <p id="inviteStatus" class="text-xs text-[#2e6b4d] bg-[#ebf3ee] border border-[#cfe2d6] p-2.5 text-center hidden"></p>
         </div>
       </section>
 
-      <!-- 02 出席管理與現場補登 -->
-      <section style="background-color: #ffffff; border: 1px solid #e5e0d6; border-radius: 6px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <h2 style="font-size: 13px; font-weight: 600; color: #4a4641; margin: 0 0 18px 0; padding-bottom: 10px; border-bottom: 1px solid #f0ebe1; display: flex; align-items: center; gap: 8px;">
-          <span style="color: #7f2227;">02</span> 出席管理與現場補登
+      <!-- 02 與會名單 -->
+      <section class="muji-card">
+        <h2 class="text-xs font-medium tracking-wider text-[#4a4642] flex items-center gap-2 mb-5 pb-2.5 border-b border-[#eeeae2]">
+          <span class="text-[#7f2227] font-serif">[02]</span> 出席名單管理
         </h2>
 
         <!-- 常用人員標籤池 -->
-        <div style="margin-bottom: 18px;">
-          <label style="display: block; font-size: 12px; color: #7d776f; margin-bottom: 8px;">快速點選與會者（已在名單內會自動隱藏）：</label>
-          <div id="quickAddChips" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        <div class="mb-5">
+          <label class="block text-xs text-[#7d7871] mb-2">常用名冊點選加入（已在名單內自動隱藏）：</label>
+          <div id="quickAddChips" class="flex flex-wrap gap-2"></div>
         </div>
 
-        <!-- 手動補登 -->
-        <div style="background-color: #faf9f6; border: 1px solid #ebe5db; padding: 14px; border-radius: 4px; margin-bottom: 18px;">
-          <label style="display: block; font-size: 12px; color: #7d776f; margin-bottom: 8px;">手動補登：</label>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input id="newName" type="text" placeholder="哪個倒楣鬼" style="width: 35%; padding: 6px 10px; background-color: #ffffff; border: 1px solid #dcd6cb; border-radius: 4px; font-size: 12px; outline: none;">
-            <input id="newEmail" type="text" placeholder="電子信箱" style="width: 65%; padding: 6px 10px; background-color: #ffffff; border: 1px solid #dcd6cb; border-radius: 4px; font-size: 12px; outline: none;">
+        <!-- 手動補登框 -->
+        <div class="mb-5 bg-[#f4f1ea] border border-[#e4ded5] p-3.5">
+          <label class="block text-xs text-[#7d7871] mb-2">手動登記出席：</label>
+          <div class="flex gap-2 mb-2">
+            <input id="newName" type="text" placeholder="姓名 / 暱稱" class="w-1/3 text-xs muji-input px-2.5 py-1.5">
+            <input id="newEmail" type="text" placeholder="電子信箱" class="w-2/3 text-xs muji-input px-2.5 py-1.5">
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; gap: 6px;">
-              <button onclick="appendDomain('@hotmail.com')" style="font-size: 11px; color: #6b665f; background-color: #ebe6dc; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">@hotmail.com</button>
-              <button onclick="appendDomain('@outlook.com')" style="font-size: 11px; color: #6b665f; background-color: #ebe6dc; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer;">@outlook.com</button>
+          <div class="flex justify-between items-center">
+            <div class="space-x-1">
+              <button onclick="appendDomain('@hotmail.com')" class="text-[11px] text-[#6b665f] bg-[#e4ded5] hover:bg-[#d9d3c9] px-2 py-0.5 rounded-sm">@hotmail.com</button>
+              <button onclick="appendDomain('@outlook.com')" class="text-[11px] text-[#6b665f] bg-[#e4ded5] hover:bg-[#d9d3c9] px-2 py-0.5 rounded-sm">@outlook.com</button>
             </div>
-            <button onclick="manualAdd()" style="font-size: 12px; background-color: #524d47; color: #ffffff; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer;">加入名單</button>
+            <button onclick="manualAdd()" class="text-xs btn-muji-secondary px-3 py-1 font-medium">加入名冊</button>
           </div>
         </div>
 
-        <!-- 與會名單列表 -->
+        <!-- 名冊明細 -->
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 12px; font-weight: 500; color: #7d776f;">目前與會名單</span>
-            <button onclick="simulateConfirm()" style="font-size: 11px; color: #7f2227; background: none; border: none; cursor: pointer; text-decoration: underline;">全部確認</button>
+          <div class="flex justify-between items-center mb-2.5">
+            <span class="text-xs text-[#7d7871]">當前名冊清單</span>
+            <button onclick="simulateConfirm()" class="text-[11px] text-[#7f2227] hover:underline">全體出席確認</button>
           </div>
-          <ul id="attendeeList" style="list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto;"></ul>
+          <ul id="attendeeList" class="divide-y divide-[#eeeae2] text-xs max-h-56 overflow-y-auto pr-1"></ul>
         </div>
       </section>
 
     </div>
 
-    <!-- 右側欄 -->
-    <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- 右側欄：語音收音與紀錄生成 -->
+    <div class="lg:col-span-7 space-y-6">
 
-      <!-- 03 會議收音與逐字稿 -->
-      <section style="background-color: #ffffff; border: 1px solid #e5e0d6; border-radius: 6px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #f0ebe1;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <h2 style="font-size: 13px; font-weight: 600; color: #4a4641; margin: 0;">
-              <span style="color: #7f2227;">03</span> 會議收音與逐字稿
+      <!-- 03 即時收音與逐字檢視 -->
+      <section class="muji-card">
+        <div class="flex justify-between items-center mb-4 pb-2.5 border-b border-[#eeeae2]">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-medium tracking-wider text-[#4a4642]">
+              <span class="text-[#7f2227] font-serif">[03]</span> 會議收音與即時文字
             </h2>
-            <span id="micStatusIndicator" style="font-size: 10px; padding: 2px 6px; background-color: #ebe7de; color: #7d776f; border-radius: 3px;">待命中</span>
+            <span id="micStatusIndicator" class="text-[10px] px-2 py-0.5 bg-[#eae5db] text-[#6e6860] rounded-sm">麥克風待命中</span>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button onclick="clearTranscript()" style="font-size: 12px; background-color: #f2eee6; color: #57534e; border: 1px solid #dfd9ce; padding: 5px 12px; border-radius: 4px; cursor: pointer;">清除內容</button>
-            <button id="recBtn" onclick="toggleRecording()" style="font-size: 12px; background-color: #2e2c29; color: #ffffff; border: none; padding: 5px 14px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-              <span id="recDot">🎙️</span> <span id="recText">開始收音</span>
+          <div class="flex gap-2">
+            <button onclick="clearTranscript()" class="text-xs btn-muji-secondary px-3 py-1">清除內容</button>
+            <button id="recBtn" onclick="toggleRecording()" class="text-xs btn-muji-dark px-3.5 py-1 flex items-center gap-1.5">
+              <span id="recDot" class="w-2 h-2 rounded-full bg-stone-400"></span>
+              <span id="recText">啟動收音</span>
             </button>
           </div>
         </div>
 
-        <div id="micErrorMsg" style="display: none; background-color: #fbf0f0; border: 1px solid #f0d4d4; color: #8a3333; padding: 10px; border-radius: 4px; font-size: 12px; margin-bottom: 12px;">
-          ⚠️ 麥克風未授權或瀏覽器不支援即時收音，您可直接在下方打字或貼上討論內容。
+        <div id="micErrorMsg" class="hidden bg-[#fbf2f2] border border-[#edd7d7] text-[#852b2b] p-3 text-xs mb-3">
+          未取得麥克風授權或當前瀏覽器不支援即時收音，您可直接在下方手動鍵入討論內容。
         </div>
 
-        <textarea id="transcriptBox" rows="6" placeholder="點擊「開始收音」對著麥克風說話（唱歌可能因降噪演算法被濾除，請用說話口吻），或直接在此輸入會議討論內容..." style="width: 100%; box-sizing: border-box; padding: 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; font-size: 13px; color: #2e2c29; outline: none; margin-bottom: 14px; line-height: 1.6;"></textarea>
+        <!-- 逐字稿顯示框：已支援即時串流輸入顯示 -->
+        <div class="relative mb-3">
+          <textarea id="transcriptBox" rows="6" placeholder="點擊「啟動收音」開始講話，收到的字句會即時浮現在此處..." class="w-full text-xs muji-input p-3.5 leading-relaxed resize-y"></textarea>
+          <!-- 即時辨識字句浮動提示（視覺反饋） -->
+          <div id="liveStreamBubble" class="hidden absolute bottom-3 left-3 right-3 text-xs bg-[#f4f1ea]/95 border border-[#ded8ce] text-[#706b63] px-3 py-1.5 italic pointer-events-none truncate">
+            即時辨識中：<span id="interimText" class="text-[#2e2c29] font-normal not-italic"></span>
+          </div>
+        </div>
 
-        <div style="display: flex; gap: 10px;">
-          <select id="targetLang" style="font-size: 12px; padding: 9px 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; color: #4a4641; outline: none;">
-            <option value="國語 (繁體中文)">🇹🇼 國語 / 繁體中文 (預設)</option>
-            <option value="英文">🇺🇸 英文 (English)</option>
-            <option value="日文">🇯🇵 日文 (日本語)</option>
-            <option value="西班牙文">🇪🇸 西班牙文 (Español)</option>
-            <option value="法文">🇫🇷 法文 (Français)</option>
-            <option value="德文">🇩🇪 德文 (Deutsch)</option>
-            <option value="義大利文">🇮🇹 義大利文 (Italiano)</option>
+        <div class="flex gap-2">
+          <select id="targetLang" class="muji-input text-xs px-3 py-2 text-[#4a4642]">
+            <option value="國語 (繁體中文)">繁體中文（標準）</option>
+            <option value="英文">英語 (English)</option>
+            <option value="日文">日本語 (Japanese)</option>
+            <option value="德文">德語 (Deutsch)</option>
+            <option value="法文">法語 (Français)</option>
+            <option value="義大利文">義大利語 (Italiano)</option>
+            <option value="西班牙文">西班牙語 (Español)</option>
           </select>
-          <button onclick="generateMinutes()" style="flex: 1; background-color: #7f2227; color: #ffffff; font-size: 13px; font-weight: 500; padding: 9px 0; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#681a1f'" onmouseout="this.style.backgroundColor='#7f2227'">
-            生成會議紀錄
+          <button onclick="generateMinutes()" class="flex-1 btn-muji-red text-xs py-2 font-medium tracking-wider">
+            整理並產出會議紀錄
           </button>
         </div>
       </section>
 
-      <!-- 04 紀錄審閱與寄送 -->
-      <section style="background-color: #ffffff; border: 1px solid #e5e0d6; border-radius: 6px; padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #f0ebe1;">
-          <h2 style="font-size: 13px; font-weight: 600; color: #4a4641; margin: 0;">
-            <span style="color: #7f2227;">04</span> 紀錄審閱與寄送
+      <!-- 04 成果審閱與通訊發送 -->
+      <section class="muji-card">
+        <div class="flex justify-between items-baseline mb-4 pb-2.5 border-b border-[#eeeae2]">
+          <h2 class="text-xs font-medium tracking-wider text-[#4a4642]">
+            <span class="text-[#7f2227] font-serif">[04]</span> 會議紀錄審閱與寄送
           </h2>
-          <span style="font-size: 11px; color: #8e877c;">點擊後真實寄至 bird4793@livemail.tw</span>
+          <span class="text-xs text-[#8c857b]">確認發送至 bird4793@livemail.tw</span>
         </div>
 
-        <textarea id="minutesOutput" rows="10" placeholder="點擊上方「生成會議紀錄」後，將直接依據 03 的逐字稿內容與選定語言整合於此..." style="width: 100%; box-sizing: border-box; padding: 12px; background-color: #faf9f6; border: 1px solid #dcd6cb; border-radius: 4px; font-family: monospace; font-size: 12px; color: #2e2c29; outline: none; margin-bottom: 14px; line-height: 1.6;"></textarea>
+        <textarea id="minutesOutput" rows="10" placeholder="點擊「整理並產出會議紀錄」後，將根據收音全文與選擇之語言規格整合成正式文稿..." class="w-full text-xs font-mono muji-input p-3.5 mb-4 leading-relaxed bg-[#f9f8f5]"></textarea>
 
-        <div style="display: flex; gap: 10px;">
-          <button onclick="sendMinutesEmail()" style="flex: 1; background-color: #2e6b4d; color: #ffffff; font-size: 13px; font-weight: 500; padding: 10px 0; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#23533b'" onmouseout="this.style.backgroundColor='#2e6b4d'">
-            確認無誤，真實寄送給出席者
+        <div class="flex gap-3">
+          <button onclick="sendMinutesEmail()" class="flex-1 btn-muji-dark text-xs py-2.5 tracking-wider font-medium">
+            確認核可，直接發信通知出席者
           </button>
-          <button onclick="copyMinutes()" style="background-color: #f2eee6; color: #57534e; border: 1px solid #dfd9ce; font-size: 12px; font-weight: 500; padding: 10px 18px; border-radius: 4px; cursor: pointer;">
-            複製
+          <button onclick="copyMinutes()" class="btn-muji-secondary text-xs px-4 py-2.5">
+            複製文稿
           </button>
         </div>
-        <p id="sendResult" style="display: none; font-size: 12px; color: #2e6b4d; background-color: #edf5f0; border: 1px solid #d2e8dc; padding: 12px; border-radius: 4px; margin-top: 14px; margin-bottom: 0;"></p>
+        <p id="sendResult" class="text-xs text-[#2e6b4d] bg-[#ebf3ee] border border-[#cfe2d6] p-3 mt-3.5 hidden"></p>
       </section>
 
     </div>
@@ -190,14 +287,14 @@
       const availableCandidates = presetCandidatePool.filter(c => !currentEmails.includes(c.email.toLowerCase()));
 
       if (availableCandidates.length === 0) {
-        chipContainer.innerHTML = '<span style="font-size: 12px; color: #a49f96;">所有常用人員皆已加入名單</span>';
+        chipContainer.innerHTML = '<span class="text-xs text-[#a49f96]">常用名冊人員皆已加入名單</span>';
         return;
       }
 
       availableCandidates.forEach(person => {
         const btn = document.createElement('button');
-        btn.style.cssText = 'font-size: 12px; background-color: #faf9f6; color: #57534e; border: 1px solid #ded9cd; padding: 4px 10px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px;';
-        btn.innerHTML = `<span style="color: #7f2227; font-weight: bold;">+</span> ${person.name}`;
+        btn.className = 'text-xs bg-[#f4f1ea] hover:bg-[#e8e4dc] text-[#57534e] border border-[#d8d2c7] px-2.5 py-1 rounded-sm transition flex items-center gap-1.5';
+        btn.innerHTML = `<span class="text-[#7f2227] font-semibold">+</span> ${person.name}`;
         btn.onclick = () => quickAdd(person.name, person.email, person.defaultTag);
         chipContainer.appendChild(btn);
       });
@@ -207,19 +304,19 @@
       const list = document.getElementById('attendeeList');
       list.innerHTML = '';
       attendees.forEach((p, idx) => {
-        const badgeStyle = p.confirmed ? 'background-color: #edf5f0; color: #2e6b4d; border: 1px solid #d2e8dc;' : 'background-color: #faf4e8; color: #8c6b2d; border: 1px solid #ebe0c7;';
+        const badgeStyle = p.confirmed ? 'bg-[#ebf3ee] text-[#2e6b4d] border border-[#cfe2d6]' : 'bg-[#f7f2e7] text-[#856627] border border-[#e8dcb8]';
         list.innerHTML += `
-          <li style="padding: 10px 0; border-bottom: 1px solid #f0ebe1; display: flex; align-items: center; justify-content: space-between;">
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-              <input type="checkbox" ${p.confirmed ? 'checked' : ''} onchange="toggleConfirm(${idx})" style="accent-color: #7f2227;">
+          <li class="py-2.5 flex items-center justify-between">
+            <label class="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" ${p.confirmed ? 'checked' : ''} onchange="toggleConfirm(${idx})" class="rounded-none border-[#cfc9be] text-[#7f2227] focus:ring-0">
               <div>
-                <p style="font-size: 12px; font-weight: 500; color: #2e2c29; margin: 0;">${p.name}</p>
-                <p style="font-size: 11px; color: #8e877c; margin: 0;">${p.email}</p>
+                <p class="font-normal text-[#2e2c29] text-xs">${p.name}</p>
+                <p class="text-[11px] text-[#8a8479]">${p.email}</p>
               </div>
             </label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; ${badgeStyle}">${p.tag}</span>
-              ${idx !== 0 ? `<button onclick="removeAttendee(${idx})" style="font-size: 11px; color: #a49f96; background: none; border: none; cursor: pointer;" title="移除">✕</button>` : ''}
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] px-2 py-0.5 rounded-sm font-normal ${badgeStyle}">${p.tag}</span>
+              ${idx !== 0 ? `<button onclick="removeAttendee(${idx})" class="text-[11px] text-[#a49f96] hover:text-[#7f2227]" title="移除">✕</button>` : ''}
             </div>
           </li>
         `;
@@ -252,7 +349,7 @@
     function manualAdd() {
       const name = document.getElementById('newName').value.trim();
       const email = document.getElementById('newEmail').value.trim();
-      if (!name || !email) return alert('請完整填寫姓名與信箱');
+      if (!name || !email) return alert('請完整填寫姓名與電子信箱');
       quickAdd(name, email, '手動補登');
       document.getElementById('newName').value = '';
       document.getElementById('newEmail').value = '';
@@ -268,6 +365,7 @@
 
     function clearTranscript() {
       document.getElementById('transcriptBox').value = '';
+      document.getElementById('liveStreamBubble').classList.add('hidden');
     }
 
     async function sendInvites() {
@@ -276,8 +374,8 @@
       const status = document.getElementById('inviteStatus');
       if (!emails) return alert('請輸入收件人信箱');
 
-      status.style.display = 'block';
-      status.innerHTML = '正在發送行事曆邀請信...';
+      status.innerHTML = '正在傳送會議邀請通訊...';
+      status.classList.remove('hidden');
 
       try {
         const webhookUrl = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
@@ -288,15 +386,16 @@
           body: JSON.stringify({
             email: 'bird4793@livemail.tw',
             title: `【行事曆邀請】${title}`,
-            content: `阿鳥 您好：\n\n已為您建立會議：「${title}」。\n\n- MeetPulse AI System`
+            content: `阿鳥 您好：\n\n已建立會議項目：「${title}」。\n\n- MeetPulse AI`
           })
         });
-        status.innerHTML = `已成功寄出邀請至：bird4793@livemail.tw`;
+        status.innerHTML = `邀請函已發送至：bird4793@livemail.tw`;
       } catch(e) {
-        status.innerHTML = `寄送異常，請檢查網路。`;
+        status.innerHTML = `通訊異常，請檢查網路連線。`;
       }
     }
 
+    // 語音收音核心：加入即時辨識文字反饋 (Interim Results)
     let recognition;
     let isRecording = false;
     try {
@@ -308,20 +407,33 @@
         recognition.interimResults = true;
 
         recognition.onresult = (event) => {
-          let finalTranscript = '';
+          let interimTranscript = '';
+          const box = document.getElementById('transcriptBox');
+          const bubble = document.getElementById('liveStreamBubble');
+          const interimSpan = document.getElementById('interimText');
+
           for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcriptText = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript;
+              // 說完一句，確定固化進主要文字框
+              box.value += (box.value ? ' ' : '') + transcriptText;
+              interimTranscript = '';
+            } else {
+              // 講話當下：即時串流暫存文字
+              interimTranscript += transcriptText;
             }
           }
-          const box = document.getElementById('transcriptBox');
-          if (finalTranscript) {
-            box.value += (box.value ? ' ' : '') + finalTranscript;
+
+          if (interimTranscript.trim().length > 0) {
+            bubble.classList.remove('hidden');
+            interimSpan.textContent = interimTranscript;
+          } else {
+            bubble.classList.add('hidden');
           }
         };
 
         recognition.onerror = () => {
-          document.getElementById('micErrorMsg').style.display = 'block';
+          document.getElementById('micErrorMsg').classList.remove('hidden');
           stopRecordingUI();
         };
 
@@ -334,27 +446,29 @@
     function toggleRecording() {
       const btn = document.getElementById('recBtn');
       const text = document.getElementById('recText');
+      const dot = document.getElementById('recDot');
       const indicator = document.getElementById('micStatusIndicator');
       const errBox = document.getElementById('micErrorMsg');
 
       if (!recognition) {
-        errBox.style.display = 'block';
-        return alert('瀏覽器不支援語音辨識，請使用 Chrome 或直接在文字框輸入！');
+        errBox.classList.remove('hidden');
+        return alert('瀏覽器未支援語音辨識，請使用 Chrome 瀏覽器或手動輸入。');
       }
 
-      errBox.style.display = 'none';
+      errBox.classList.add('hidden');
 
       if (!isRecording) {
         try {
           recognition.start();
           isRecording = true;
-          btn.style.backgroundColor = '#7f2227';
-          text.textContent = '收音中... (點擊停止)';
-          indicator.textContent = '收音中';
-          indicator.style.backgroundColor = '#fbf0f0';
-          indicator.style.color = '#7f2227';
+          btn.classList.remove('btn-muji-dark');
+          btn.classList.add('btn-muji-red');
+          dot.className = 'w-2 h-2 rounded-full bg-white recording-pulse';
+          text.textContent = '收音中 (點擊結束)';
+          indicator.textContent = '即時收音運作中';
+          indicator.className = 'text-[10px] px-2 py-0.5 bg-[#fbf2f2] text-[#7f2227] border border-[#edd7d7] rounded-sm';
         } catch (e) {
-          errBox.style.display = 'block';
+          errBox.classList.remove('hidden');
         }
       } else {
         stopRecordingUI();
@@ -366,13 +480,20 @@
       if (recognition) { try { recognition.stop(); } catch(e) {} }
       const btn = document.getElementById('recBtn');
       const text = document.getElementById('recText');
+      const dot = document.getElementById('recDot');
       const indicator = document.getElementById('micStatusIndicator');
-      if (btn) btn.style.backgroundColor = '#2e2c29';
-      if (text) text.textContent = '開始收音';
+      const bubble = document.getElementById('liveStreamBubble');
+
+      if (bubble) bubble.classList.add('hidden');
+      if (btn) {
+        btn.classList.remove('btn-muji-red');
+        btn.classList.add('btn-muji-dark');
+      }
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-stone-400';
+      if (text) text.textContent = '啟動收音';
       if (indicator) {
-        indicator.textContent = '待命中';
-        indicator.style.backgroundColor = '#ebe7de';
-        indicator.style.color = '#7d776f';
+        indicator.textContent = '麥克風待命中';
+        indicator.className = 'text-[10px] px-2 py-0.5 bg-[#eae5db] text-[#6e6860] rounded-sm';
       }
     }
 
@@ -383,25 +504,25 @@
       const targetLang = document.getElementById('targetLang').value;
       const output = document.getElementById('minutesOutput');
 
-      if (!transcript) return alert('請先在「03. 會議收音與逐字稿」錄音或輸入討論內容！');
+      if (!transcript) return alert('請先啟動收音或輸入會議討論文字。');
 
       const presentList = attendees.filter(a => a.confirmed).map(a => `${a.name} <${a.email}>`).join('、');
       const apiKey = document.getElementById('apiKeyInput').value.trim();
-      output.value = `正在整理並產出 [${targetLang}] 會議紀錄...`;
+      output.value = `正在依據 [${targetLang}] 規範進行文稿梳理整理中...`;
 
       if (apiKey) {
         try {
-          const prompt = `你是一位專業會議記錄人員。請嚴格根據以下逐字稿內容產出簡約、清晰的會議紀錄，並以「${targetLang}」呈現：
-會議名稱：${title}
-時間：${time}
-出席名單：${presentList}
-逐字稿全文：
+          const prompt = `你是一位專業且風格簡約的會議記錄秘書。請根據以下逐字內容，產出條理清晰、語調質樸自然的正式會議紀錄，並以「${targetLang}」呈現全文：
+會議主題：${title}
+召開時間：${time}
+與會人員：${presentList}
+逐字紀錄全文：
 ${transcript}
 
-格式結構：
-1. 基本資訊
-2. 討論要點與決定事項 (Key Decisions)
-3. 待辦事項 (Action Items)`;
+格式架構要求：
+一、 基本資訊
+二、 核心決議與共識 (Key Decisions)
+三、 執行行動清單 (Action Items)`;
 
           const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -418,132 +539,135 @@ ${transcript}
 
       setTimeout(() => {
         const lines = transcript.split(/[。！？\n]/).filter(s => s.trim().length > 0);
-        const point1 = lines[0] ? lines[0].trim() : '確立各項專案執行方針';
-        const point2 = lines[1] ? lines[1].trim() : '依據當前共識推進落實';
+        const p1 = lines[0] ? lines[0].trim() : '確立各項重點推進工作';
+        const p2 = lines[1] ? lines[1].trim() : '依據當前共識落實各階段時程';
 
         if (targetLang === '英文') {
-          output.value = `[Meeting Minutes] ${title}
-----------------------------------------
-Date & Time: ${time}
-Attendees: ${presentList}
-Language: English
+          output.value = `[MEETING SUMMARY] ${title}
+--------------------------------------------------
+Date & Time : ${time}
+Attendees   : ${presentList}
+Language    : English
 
 1. Key Decisions
-- Focus 1: ${point1}
-- Focus 2: ${point2}
+- Priority Item : ${p1}
+- Follow-up     : ${p2}
 
 2. Discussion Content
 "${transcript}"
 
-3. Action Items
-- Follow-up: Implement agreed items
-  Owner: 阿鳥 & Attendees
-  Deadline: As scheduled`;
+3. Action Plan
+- Item  : Execute as agreed in discussion
+  Owner : 阿鳥 & Confirmed Attendees`;
         } else if (targetLang === '德文') {
-          output.value = `[Protokoll der Sitzung] ${title}
-----------------------------------------
-Datum: ${time}
-Teilnehmer: ${presentList}
-Sprache: Deutsch
+          output.value = `[PROTOKOLL DER SITZUNG] ${title}
+--------------------------------------------------
+Datum & Zeit: ${time}
+Teilnehmer  : ${presentList}
+Sprache     : Deutsch
 
 1. Beschlüsse
-- Punkt 1: ${point1}
-- Punkt 2: ${point2}
+- Hauptpunkt: ${p1}
+- Maßnahme  : ${p2}
 
-2. Transkript
+2. Inhalt
 "${transcript}"
 
 3. Aufgaben
-- Umsetzung der besprochenen Maßnahmen
-  Verantwortlich: 阿鳥 & Teilnehmer`;
+- Verantwortlich: 阿鳥 & Teilnehmer`;
         } else if (targetLang === '法文') {
-          output.value = `[Compte Rendu] ${title}
-----------------------------------------
-Date: ${time}
+          output.value = `[COMPTE RENDU DE RÉUNION] ${title}
+--------------------------------------------------
+Date & Heure: ${time}
 Participants: ${presentList}
-Langue: Français
+Langue      : Français
 
 1. Décisions Clés
-- Point 1: ${point1}
-- Point 2: ${point2}
+- Point 1: ${p1}
+- Point 2: ${p2}
 
-2. Contenu
+2. Contenu des Discussions
 "${transcript}"
 
-3. Actions à mener
-- Mise en œuvre des décisions`;
+3. Actions à Mener
+- Responsable: 阿鳥 et les participants`;
         } else if (targetLang === '義大利文') {
-          output.value = `[Verbale] ${title}
-----------------------------------------
-Data: ${time}
+          output.value = `[VERBALE DI RIUNIONE] ${title}
+--------------------------------------------------
+Data & Ora  : ${time}
 Partecipanti: ${presentList}
-Lingua: Italiano
+Lingua      : Italiano
 
-1. Decisioni
-- Punto 1: ${point1}
-- Punto 2: ${point2}
+1. Decisioni Chiave
+- Punto 1: ${p1}
+- Punto 2: ${p2}
 
 2. Trascrizione
-"${transcript}"`;
-        } else if (targetLang === '西班牙文') {
-          output.value = `[Acta de la Reunión] ${title}
-----------------------------------------
-Fecha: ${time}
-Asistentes: ${presentList}
-Idioma: Español
+"${transcript}"
 
-1. Decisiones
-- Tema 1: ${point1}
-- Tema 2: ${point2}
+3. Azioni da Intraprendere
+- Responsabile: 阿鳥 e partecipanti`;
+        } else if (targetLang === '西班牙文') {
+          output.value = `[ACTA DE LA REUNIÓN] ${title}
+--------------------------------------------------
+Fecha y Hora: ${time}
+Asistentes  : ${presentList}
+Idioma      : Español
+
+1. Decisiones Principales
+- Punto 1: ${p1}
+- Punto 2: ${p2}
 
 2. Transcripción
-"${transcript}"`;
+"${transcript}"
+
+3. Tareas Pendientes
+- Responsable: 阿鳥 y asistentes`;
         } else if (targetLang === '日文') {
-          output.value = `【會議議事錄】${title}
-----------------------------------------
-日時：${time}
-出席者：${presentList}
-言語：日本語
+          output.value = `【会議議事録】${title}
+--------------------------------------------------
+日時  ：${time}
+出席者 ：${presentList}
+表記言語：日本語
 
-一、 決定事項
-・検討事項 1：${point1}
-・検討事項 2：${point2}
+一、 決定事項および重要討議点
+・重要方針：${p1}
+・継続検討：${p2}
 
-二、 討議記録
+二、 討議発言内容
 「${transcript}」
 
-三、 アクションアイテム
-・決定事項の遂行（担当：阿鳥 ほか出席者）`;
+三、 実行課題 (Action Items)
+・担当：阿鳥 および 出席者各位`;
         } else {
           output.value = `【會議紀錄】${title}
-----------------------------------------
-時間：${time}
-出席者：${presentList}
-輸出格式：國語 (繁體中文)
+--------------------------------------------------
+時間  ：${time}
+出席人員：${presentList}
+輸出格式：繁體中文
 
-一、 決策與要點
-1. ${point1}
-2. ${point2}
+一、 核心決議與重要討論方針
+1. 首要共識：${p1}
+2. 後續推進：${p2}
 
-二、 會議討論內容
+二、 會議討論內容全文
 「${transcript}」
 
-三、 待辦事項
-- 依據討論結論落實相關交辦工作
-  負責人：阿鳥 及全體實際出席人員
-  時程：依原定期限交件`;
+三、 待辦事項追蹤 (Action Items)
+- 項目：依據上述共識落實推進各項排程
+  窗口：阿鳥 及全體實際出席人員`;
         }
-      }, 450);
+      }, 400);
     }
 
     async function sendMinutesEmail() {
       const minutes = document.getElementById('minutesOutput').value.trim();
       const title = document.getElementById('meetingTitle').value.trim();
-      if (!minutes) return alert('請先生成會議紀錄');
+      if (!minutes) return alert('請先產出會議紀錄。');
 
       const resBox = document.getElementById('sendResult');
-      resBox.style.display = 'block';
-      resBox.innerHTML = '正在透過後台寄送至信箱...';
+      resBox.innerHTML = '正在傳送會議紀錄至通訊信箱...';
+      resBox.classList.remove('hidden');
 
       try {
         const webhookUrl = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
@@ -557,9 +681,9 @@ Idioma: Español
             content: minutes
           })
         });
-        resBox.innerHTML = `會議紀錄已寄達：<strong>bird4793@livemail.tw</strong>`;
+        resBox.innerHTML = `會議紀錄已送達：<strong>bird4793@livemail.tw</strong>`;
       } catch (error) {
-        resBox.innerHTML = `寄送異常，請確認網路連線。`;
+        resBox.innerHTML = `傳送失敗，請確認網路連線狀態。`;
       }
     }
 
@@ -567,7 +691,7 @@ Idioma: Español
       const output = document.getElementById('minutesOutput');
       output.select();
       document.execCommand('copy');
-      alert('已複製到剪貼簿');
+      alert('會議紀錄已複製至剪貼簿。');
     }
 
     renderAttendees();
