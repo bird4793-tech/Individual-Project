@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MeetPulse - 北歐冷杉石墨版</title>
+  <title>隨緣聽力・甩鍋必備版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -86,13 +86,12 @@
     <div>
       <div class="flex items-center gap-3">
         <span class="w-3 h-3 bg-[#2ea043] rounded-sm inline-block"></span>
-        <h1 class="text-xl font-medium tracking-wider text-[#e6edf3]">MeetPulse</h1>
-        <span class="text-xs text-[#8b949e] tracking-wider pl-2 border-l border-[#37414a]">隨緣聽力・甩鍋必備版</span>
+        <h1 class="text-xl font-medium tracking-wider text-[#e6edf3]">隨緣聽力・甩鍋必備版</h1>
       </div>
-      <p class="text-xs text-[#8b949e] mt-2">主持人：阿鳥 ｜ 語音紀錄整理與出席管理</p>
+      <p class="text-xs text-[#8b949e] mt-2">語音紀錄整理與出席管理</p>
     </div>
     <div class="w-full md:w-auto">
-      <input id="apiKeyInput" type="password" placeholder="Gemini API Key (選填，留空走預設)" class="nordic-input text-xs px-3 py-2 w-full md:w-64 placeholder-[#6e7681]">
+      <input id="apiKeyInput" type="password" placeholder="API Key" class="nordic-input text-xs px-3 py-2 w-full md:w-56 placeholder-[#6e7681]">
     </div>
   </header>
 
@@ -121,7 +120,10 @@
           <div>
             <div class="flex justify-between items-center mb-1.5">
               <label class="text-[#8b949e]">收件信箱清單 (逗號或分號分隔)</label>
-              <button onclick="syncAttendeesToInvites()" class="text-[11px] text-[#58a6ff] hover:underline">帶入出席者信箱</button>
+              <div class="space-x-2">
+                <button onclick="syncAttendeesToInvites()" class="text-[11px] text-[#58a6ff] hover:underline">帶入出席者信箱</button>
+                <button onclick="clearInviteEmails()" class="text-[11px] text-[#8b949e] hover:text-[#f85149]">清空清單</button>
+              </div>
             </div>
             <textarea id="inviteEmails" rows="2" class="w-full nordic-input px-3 py-2 text-xs leading-relaxed">bird4793@livemail.tw</textarea>
           </div>
@@ -162,7 +164,10 @@
         <div>
           <div class="flex justify-between items-center mb-2.5">
             <span class="text-xs text-[#8b949e]">當前名冊清單</span>
-            <button onclick="simulateConfirm()" class="text-[11px] text-[#58a6ff] hover:underline">全體出席確認</button>
+            <div class="space-x-2">
+              <button onclick="simulateConfirm()" class="text-[11px] text-[#58a6ff] hover:underline">全體出席確認</button>
+              <button onclick="clearAllAttendees()" class="text-[11px] text-[#8b949e] hover:text-[#f85149]">清空名冊</button>
+            </div>
           </div>
           <ul id="attendeeList" class="divide-y divide-[#37414a] text-xs max-h-56 overflow-y-auto pr-1"></ul>
         </div>
@@ -224,7 +229,7 @@
           <h2 class="text-xs font-semibold tracking-wider text-[#e6edf3]">
             <span class="text-[#2ea043] font-mono">[04]</span> 會議紀錄審閱與寄送
           </h2>
-          <span class="text-xs text-[#8b949e]">發送對象：全體已出席人員</span>
+          <span class="text-xs text-[#8b949e]">發送對象：全體出席人員</span>
         </div>
 
         <textarea id="minutesOutput" rows="10" placeholder="點擊「整理並產出會議紀錄」後，將直接轉譯為所選語言並整理於此..." class="w-full text-xs font-mono nordic-input p-3.5 mb-4 leading-relaxed"></textarea>
@@ -256,7 +261,7 @@
     ];
 
     let attendees = [
-      { name: '阿鳥 (主辦)', email: 'bird4793@livemail.tw', confirmed: true, tag: '主辦人' },
+      { name: '出席者 1', email: 'bird4793@livemail.tw', confirmed: true, tag: '確認出席' },
       { name: '隔壁部門偷吃零食的小美', email: 'snack.mei@hotmail.com', confirmed: true, tag: '偷吃零食' },
       { name: '路過被抓進來的倒楣工讀生', email: 'parttime@outlook.com', confirmed: false, tag: '等待救援' }
     ];
@@ -285,6 +290,12 @@
     function renderAttendees() {
       const list = document.getElementById('attendeeList');
       list.innerHTML = '';
+      if (attendees.length === 0) {
+        list.innerHTML = '<li class="py-3 text-center text-xs text-[#8b949e]">目前名冊為空，請點選上方常用名冊或手動補登。</li>';
+        renderQuickAddChips();
+        return;
+      }
+
       attendees.forEach((p, idx) => {
         const badgeStyle = p.confirmed ? 'bg-[#1f3627] text-[#3fb950] border border-[#238636]/50' : 'bg-[#38281a] text-[#d29922] border border-[#bb8009]/40';
         list.innerHTML += `
@@ -298,7 +309,7 @@
             </label>
             <div class="flex items-center gap-2">
               <span class="text-[10px] px-2 py-0.5 rounded font-normal ${badgeStyle}">${p.tag}</span>
-              ${idx !== 0 ? `<button onclick="removeAttendee(${idx})" class="text-[11px] text-[#8b949e] hover:text-[#f85149]" title="移除">✕</button>` : ''}
+              <button onclick="removeAttendee(${idx})" class="text-[11px] text-[#8b949e] hover:text-[#f85149]" title="移除">✕</button>
             </div>
           </li>
         `;
@@ -345,9 +356,18 @@
       renderAttendees();
     }
 
+    function clearAllAttendees() {
+      attendees = [];
+      renderAttendees();
+    }
+
     function syncAttendeesToInvites() {
       const allEmails = attendees.map(a => a.email.trim()).filter(Boolean);
       document.getElementById('inviteEmails').value = allEmails.join(', ');
+    }
+
+    function clearInviteEmails() {
+      document.getElementById('inviteEmails').value = '';
     }
 
     function clearTranscript() {
@@ -374,7 +394,7 @@
           body: JSON.stringify({
             emails: emailList,
             title: `【行事曆邀請】${title}`,
-            content: `各位與會夥伴 您好：\n\n已建立會議項目：「${title}」。\n\n- MeetPulse 會議管理系統`
+            content: `各位與會夥伴 您好：\n\n已建立會議項目：「${title}」。\n\n- 會議管理系統`
           })
         });
         status.innerHTML = `邀請函已發送給：<br>${emailList.join('、')}`;
@@ -478,7 +498,6 @@
       }
     }
 
-    // 核心雙軌生成邏輯
     async function generateMinutes() {
       const title = document.getElementById('meetingTitle').value;
       const time = document.getElementById('meetingTime').value.replace('T', ' ');
@@ -491,7 +510,6 @@
 
       const presentList = attendees.filter(a => a.confirmed).map(a => `${a.name} <${a.email}>`).join('、');
 
-      // 軌道 A：使用者自己填寫了 API Key（前端直接連線）
       if (apiKey) {
         output.value = `[自訂 Key 模式] 正在透過輸入之金鑰向 Gemini 請求 [${targetLang}] 會議紀錄...`;
         try {
@@ -528,7 +546,6 @@ ${transcript}
         }
       }
 
-      // 軌道 B：留空未填（阿鳥自己使用，自動走 GAS 後台代理藏好的金鑰）
       output.value = `[預設安全模式] 正在透過 Google 雲端後台進行 [${targetLang}] 整理與多語言轉譯...`;
 
       try {
@@ -556,7 +573,6 @@ ${transcript}
       }
     }
 
-    // 發信給 [02] 中所有打勾確認出席的名單
     async function sendMinutesEmail() {
       const minutes = document.getElementById('minutesOutput').value.trim();
       const title = document.getElementById('meetingTitle').value.trim();
@@ -569,7 +585,7 @@ ${transcript}
       const recipientNames = confirmedAttendees.map(a => a.name).join('、');
 
       const resBox = document.getElementById('sendResult');
-      resBox.innerHTML = `正在發送會議紀錄給已出席者 (${recipientEmails.length} 人)...`;
+      resBox.innerHTML = `正在發送會議紀錄給出席者 (${recipientEmails.length} 人)...`;
       resBox.classList.remove('hidden');
 
       try {
