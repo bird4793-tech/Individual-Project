@@ -186,7 +186,7 @@ const st=m=>new Date(m.time).getTime(),en=m=>st(m)+m.dur*6e4;
 const save=()=>W('mp2',S);
 let recording=false,rec=null,committed='';
 
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3000)}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),4000)}
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
 function chips(){const m=cur();$('#chips').innerHTML=m.att.map((a,i)=>`<span>${esc(a.n)}<i data-i="${i}" title="移除">×</i></span>`).join('');$('#who').textContent='發送對象：全體出席人員'+(m.att.length?`（${m.att.length}）`:'')}
@@ -247,39 +247,6 @@ $('#rb').onclick=()=>{
   try{rec.start();setSt(true,'收音中','再按一次圓鈕停止')}catch(e){toast('無法啟動收音')}};
 $('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
 
-// JSONP 通訊函式：原生動態載入 script，不受 CORS 與 fetch 重導向阻擋
-function callGASWithJSONP(params, timeoutMs = 60000) {
-  return new Promise((resolve, reject) => {
-    const cbName = 'gas_cb_' + Date.now();
-    const script = document.createElement('script');
-    
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('連線逾時，後台處理時間過長'));
-    }, timeoutMs);
-
-    function cleanup() {
-      clearTimeout(timer);
-      if (script.parentNode) script.parentNode.removeChild(script);
-      delete window[cbName];
-    }
-
-    window[cbName] = function(data) {
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = function() {
-      cleanup();
-      reject(new Error('無法連線到 Google Apps Script 後台'));
-    };
-
-    const query = new URLSearchParams({ ...params, callback: cbName }).toString();
-    script.src = `${GAS_URL}?${query}`;
-    document.body.appendChild(script);
-  });
-}
-
 $('#gen').onclick = async () => {
   const m = cur(), b = $('#gen');
   if (!m.tx.trim()) return toast('還沒有討論內容，請先收音或貼上文字');
@@ -290,19 +257,24 @@ $('#gen').onclick = async () => {
   b.textContent = '整理中…';
 
   try {
-    const j = await callGASWithJSONP({
-      action: 'generate',
-      transcript: p,
-      targetLang: $('#l2').value
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'generate',
+        transcript: p,
+        targetLang: $('#l2').value
+      })
     });
 
-    if (j.status === 'success' && j.summary) {
+    const j = await resp.json();
+
+    if (j && j.status === 'success' && j.summary) {
       m.min = j.summary;
       $('#mn').value = m.min;
       save();
       toast('會議紀錄已產出，請審閱後寄送');
     } else {
-      throw new Error(j.message || '產出失敗');
+      throw new Error((j && j.message) || '產出失敗');
     }
   } catch (e) {
     toast('產出失敗：' + e.message);
