@@ -224,15 +224,6 @@ $('#chips').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;cur().att.s
 $('#fill').onclick=()=>{const m=cur();if(!m.att.length)return toast('出席者名單是空的');m.rcpt=m.att.map(a=>a.e).join(', ');$('#rc').value=m.rcpt;save()};
 $('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save()};
 const mails=()=>[...new Set([...cur().att.map(a=>a.e),...cur().rcpt.split(/[,;\s]+/).filter(Boolean)])];
-const mailto=(to,sub,body)=>{location.href='mailto:'+to.join(',')+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body)};
-
-$('#inv').onclick=()=>{const m=cur(),to=mails();
-  if(!to.length)return toast('請先加入出席者或收件信箱');
-  const z=d=>new Date(d).toISOString().replace(/[-:]|\.\d{3}/g,'');
-  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MeetPulse//TW','BEGIN:VEVENT','UID:'+m.id+'@meetpulse','DTSTAMP:'+z(Date.now()),'DTSTART:'+z(st(m)),'DTEND:'+z(en(m)),'SUMMARY:'+(m.title||'會議'),'END:VEVENT','END:VCALENDAR'].join('\r\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='meeting.ics';a.click();
-  toast('已下載 .ics，請在郵件中附上這個檔案');
-  setTimeout(()=>mailto(to,'會議邀請：'+(m.title||'會議'),`會議時間：${tf(m.time)}（${m.dur} 分鐘）\n請見附件行事曆檔案。`),700)};
 
 function setSt(on,t,h){recording=on;$('#rb').classList.toggle('on',on);$('#stt').textContent=t;$('#sth').textContent=h}
 $('#rb').onclick=()=>{
@@ -247,6 +238,7 @@ $('#rb').onclick=()=>{
   try{rec.start();setSt(true,'收音中','再按一次圓鈕停止')}catch(e){toast('無法啟動收音')}};
 $('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
 
+// 整理並產出會議紀錄
 $('#gen').onclick = async () => {
   const m = cur(), b = $('#gen');
   if (!m.tx.trim()) return toast('還沒有討論內容，請先收音或貼上文字');
@@ -284,11 +276,40 @@ $('#gen').onclick = async () => {
   }
 };
 
-$('#snd').onclick=()=>{const m=cur(),to=mails();
-  if(!m.min.trim())return toast('還沒有會議紀錄可以寄送');
-  if(!to.length)return toast('請先加入出席者或收件信箱');
-  navigator.clipboard&&navigator.clipboard.writeText(m.min).catch(()=>{});
-  mailto(to,'會議紀錄：'+(m.title||'會議'),m.min)};
+// 寄送會議紀錄（透過 GAS 後台直接發信，不開本機郵件軟體）
+$('#snd').onclick = async () => {
+  const m = cur(), to = mails(), b = $('#snd');
+  if (!m.min.trim()) return toast('還沒有會議紀錄可以寄送');
+  if (!to.length) return toast('請先加入出席者或收件信箱');
+
+  b.disabled = true;
+  b.textContent = '寄送中…';
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'sendEmail',
+        recipients: to,
+        subject: '【會議紀錄】' + (m.title || '會議紀要'),
+        content: m.min
+      })
+    });
+
+    const j = await resp.json();
+    if (j && j.status === 'success') {
+      toast('會議紀錄已成功全自動寄出！');
+    } else {
+      throw new Error((j && j.message) || '寄送失敗');
+    }
+  } catch (e) {
+    toast('寄送失敗：' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = '寄送會議紀錄';
+  }
+};
+
 $('#cp').onclick=()=>{const t=cur().min;if(!t.trim())return toast('還沒有內容可以複製');
   navigator.clipboard?navigator.clipboard.writeText(t).then(()=>toast('已複製'),()=>toast('複製失敗')):toast('此瀏覽器不支援複製')};
 
