@@ -25,7 +25,7 @@ input::placeholder,textarea::placeholder{color:var(--ph)}
 input:focus,textarea:focus,select:focus{border-color:var(--amber)}
 select option{background:var(--pop)}
 textarea{resize:vertical;line-height:1.8;border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
-#key{display:none}
+#key{max-width:220px;font-size:13px;letter-spacing:.05em}
 .hr{display:flex;align-items:center;gap:20px}
 .hr .lk{white-space:nowrap}
 .hero{text-align:center;padding:84px 0 72px}
@@ -57,10 +57,18 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .mi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mi small{font-size:14px;white-space:nowrap}
 .cf{margin-left:8px;color:var(--warn);font-weight:400;font-size:13px;border:1px solid var(--warn);border-radius:3px;padding:0 5px}
+
+/* 出席者 Chips：支援選取狀態 */
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
-.chips span{border:1px solid var(--line2);border-radius:999px;padding:2px 6px 2px 12px;font-size:15px}
-.chips i{font-style:normal;cursor:pointer;color:var(--dim);padding:0 6px}
-.chips i:hover{color:var(--amber)}
+.chips span{border:1px solid var(--line2);border-radius:999px;padding:3px 8px 3px 12px;font-size:14px;cursor:pointer;user-select:none;transition:.2s;opacity:.45}
+.chips span.selected{opacity:1;border-color:var(--amber);color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
+.chips i{font-style:normal;cursor:pointer;color:var(--dim);padding-left:6px;font-size:16px}
+.chips i:hover{color:var(--warn)}
+
+.quick-domains{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.quick-domains button{border:1px dashed var(--line2);background:none;border-radius:4px;padding:2px 8px;font-size:12px;color:var(--dim);cursor:pointer;transition:.2s}
+.quick-domains button:hover{border-color:var(--amber);color:var(--amber)}
+
 .rec{display:flex;align-items:center;gap:22px;margin-bottom:20px}
 .rb{width:76px;height:76px;flex:none;border-radius:50%;border:1px solid var(--line2);background:none;display:grid;place-items:center;cursor:pointer;transition:.2s}
 .rb:hover{border-color:var(--amber)}
@@ -78,6 +86,7 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 footer{position:relative;margin-top:20px;height:160px;line-height:0}
 #sky{width:100%;height:160px;display:block}
 #sky .b{fill:var(--bld)}
+
 :root[data-theme=light] body{font-size:17px}
 :root[data-theme=light] .sub,:root[data-theme=light] label,:root[data-theme=light] .lb,:root[data-theme=light] .lk,:root[data-theme=light] .mi small,:root[data-theme=light] .rec small,:root[data-theme=light] .chips span{font-size:15px}
 :root[data-theme=light] h1::before{background:#e3a04c;box-shadow:inset -3px -2px 0 rgba(22,24,29,.25)}
@@ -99,7 +108,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 #toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);background:var(--pop);border:1px solid var(--line2);padding:10px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:90vw}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}.hr{width:100%}#key{flex:1;width:auto}.hero{padding:56px 0 44px}}
+@media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}.hr{width:100%}#key{flex:1;width:auto;max-width:none}.hero{padding:56px 0 44px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -108,7 +117,10 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <div class="wrap">
 <header>
   <div><h1>隨緣聽力</h1><div class="sub">甩鍋必備版 語音紀錄整理與出席管理</div></div>
-  <div class="hr"><button class="lk" id="th" type="button"></button><input id="key" type="password" placeholder="API Key" autocomplete="off" aria-label="API Key"></div>
+  <div class="hr">
+    <button class="lk" id="th" type="button"></button>
+    <input id="key" type="password" placeholder="Gemini API Key（留空用後台）" autocomplete="off" aria-label="API Key">
+  </div>
 </header>
 
 <div class="hero">
@@ -132,9 +144,19 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   </section>
   <section>
     <h2>出席者</h2>
-    <div class="row"><div><input id="an" placeholder="姓名"></div><div><input id="ae" type="email" placeholder="電子郵件"></div><div class="sm" style="flex-basis:70px"><button class="btn" id="aa" style="padding:8px 0">加入</button></div></div>
+    <div class="row">
+      <div><input id="an" placeholder="姓名（留空自動甩鍋）"></div>
+      <div><input id="ae" type="email" placeholder="電子郵件"></div>
+      <div class="sm" style="flex-basis:70px"><button class="btn" id="aa" style="padding:8px 0">加入</button></div>
+    </div>
+    <div class="quick-domains">
+      <button type="button" class="qd" data-d="@gmail.com">@gmail.com</button>
+      <button type="button" class="qd" data-d="@yahoo.com.tw">@yahoo.com.tw</button>
+      <button type="button" class="qd" data-d="@outlook.com">@outlook.com</button>
+      <button type="button" class="qd" data-d="@company.com">@company.com</button>
+    </div>
     <div class="chips" id="chips"></div>
-    <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入出席者信箱</button><button class="lk" id="clr">清空</button></span></div>
+    <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入勾選信箱</button><button class="lk" id="clr">清空</button></span></div>
     <textarea id="rc" rows="3"></textarea>
     <button class="btn" id="inv" style="margin-top:18px">發送行事曆邀請通知</button>
   </section>
@@ -156,7 +178,13 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     <button class="btn main" id="gen">整理並產出會議紀錄</button>
   </section>
   <section>
-    <div class="bar"><h2>審閱與寄送</h2><span class="lb" style="margin:0 0 20px" id="who"></span></div>
+    <div class="bar">
+      <h2>審閱與寄送</h2>
+      <div class="acts" style="margin-bottom:20px">
+        <span class="lb" style="margin:0" id="who">發送對象：0 人</span>
+        <button class="lk" id="cmn">清除內容</button>
+      </div>
+    </div>
     <textarea id="mn" placeholder="按下「整理並產出會議紀錄」後，整理好的內容會出現在這裡，可以直接修改。"></textarea>
     <div class="sendrow"><button class="btn" id="snd">寄送會議紀錄</button><button class="btn" id="cp" style="flex:0 0 130px">複製全文</button></div>
   </section>
@@ -170,14 +198,27 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
 
+const FUNNY_NAMES = [
+  '勢利眼們', '背鍋俠', '甩鍋大師', '隔壁部門小美', '倒楣工讀生', 
+  '主管的心腹', '薪水小偷', '會議旁聽路人', '專案吉祥物', '摸魚王者',
+  '救火大隊長', '無辜路人甲', '按讚機器人', '神隱同事'
+];
+
 const $=s=>document.querySelector(s);
+const $All=s=>document.querySelectorAll(s);
 const L=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
 const W=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const pad=n=>String(n).padStart(2,'0');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const lt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const tf=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
-function nm(){const d=new Date();d.setHours(d.getHours()+1,0,0,0);return{id:Date.now()+Math.random().toString(36).slice(2,5),title:'',time:lt(d),dur:30,att:[],rcpt:'',tx:'',min:''}}
+
+function nm(){
+  const d=new Date();
+  d.setHours(d.getHours()+1,0,0,0);
+  return {id:Date.now()+Math.random().toString(36).slice(2,5),title:'',time:lt(d),dur:30,att:[],rcpt:'',tx:'',min:''};
+}
+
 let S=L('mp2',null);
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
 if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
@@ -189,8 +230,42 @@ let recording=false,rec=null,committed='';
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),4000)}
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
-function chips(){const m=cur();$('#chips').innerHTML=m.att.map((a,i)=>`<span>${esc(a.n)}<i data-i="${i}" title="移除">×</i></span>`).join('');$('#who').textContent='發送對象：全體出席人員'+(m.att.length?`（${m.att.length}）`:'')}
-function load(){const m=cur();$('#ti').value=m.title;$('#tm').value=m.time;$('#du').value=m.dur;$('#rc').value=m.rcpt;$('#tx').value=m.tx;$('#mn').value=m.min;rl();chips();tick()}
+
+// 動態統計寄送名單：只納入被勾選的出席者 + 收件信箱手動填入的信箱
+function getValidRecipients(){
+  const m = cur();
+  const selectedAttMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
+  const manualMails = (m.rcpt || '').split(/[,;\s]+/).filter(e => /^\S+@\S+\.\S+$/.test(e));
+  return [...new Set([...selectedAttMails, ...manualMails])];
+}
+
+function updateRecipientCount(){
+  const to = getValidRecipients();
+  $('#who').textContent = `發送對象：${to.length} 人`;
+}
+
+function chips(){
+  const m=cur();
+  $('#chips').innerHTML=(m.att||[]).map((a,i)=>`
+    <span class="chip-item${a.selected?' selected':''}" data-i="${i}">
+      ${esc(a.n)} <small style="opacity:.65">(${esc(a.e)})</small>
+      <i data-del="${i}" title="刪除">×</i>
+    </span>
+  `).join('');
+  updateRecipientCount();
+}
+
+function load(){
+  const m=cur();
+  $('#ti').value=m.title;
+  $('#tm').value=m.time;
+  $('#du').value=m.dur;
+  $('#rc').value=m.rcpt;
+  $('#tx').value=m.tx;
+  $('#mn').value=m.min;
+  $('#key').value = L('gemini_custom_key', '');
+  rl();chips();tick();
+}
 
 function tick(){
   const n=Date.now(),up=S.ms.filter(m=>!isNaN(st(m))&&en(m)>n).sort((a,b)=>st(a)-st(b))[0];
@@ -203,6 +278,7 @@ function tick(){
 }
 setInterval(tick,1000);
 
+$('#key').oninput=e=>{W('gemini_custom_key',e.target.value.trim())};
 $('#list').onclick=e=>{const r=e.target.closest('.mi');if(!r||r.dataset.id==S.cur)return;
   if(recording)return toast('正在收音，請先停止收音再切換會議');
   S.cur=r.dataset.id;save();load()};
@@ -213,30 +289,139 @@ $('#del').onclick=()=>{if(recording)return toast('正在收音，請先停止收
 $('#ti').oninput=e=>{cur().title=e.target.value;save();rl();tick()};
 $('#tm').oninput=e=>{cur().time=e.target.value;save();rl();tick()};
 $('#du').oninput=e=>{cur().dur=Math.max(5,+e.target.value||30);save();rl();tick()};
-$('#rc').oninput=e=>{cur().rcpt=e.target.value;save()};
+$('#rc').oninput=e=>{cur().rcpt=e.target.value;save();updateRecipientCount()};
 $('#tx').oninput=e=>{cur().tx=e.target.value;save()};
 $('#mn').oninput=e=>{cur().min=e.target.value;save()};
 
-$('#aa').onclick=()=>{const e=$('#ae').value.trim();if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
-  const m=cur();if(m.att.some(a=>a.e==e))return toast('這個信箱已經在名單中');
-  m.att.push({n:$('#an').value.trim()||e.split('@')[0],e});$('#an').value=$('#ae').value='';save();chips()};
-$('#chips').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;cur().att.splice(+i,1);save();chips()};
-$('#fill').onclick=()=>{const m=cur();if(!m.att.length)return toast('出席者名單是空的');m.rcpt=m.att.map(a=>a.e).join(', ');$('#rc').value=m.rcpt;save()};
-$('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save()};
-const mails=()=>[...new Set([...cur().att.map(a=>a.e),...cur().rcpt.split(/[,;\s]+/).filter(Boolean)])];
+// 網域快選按鈕
+$All('.qd').forEach(btn => {
+  btn.onclick = () => {
+    const input = $('#ae');
+    let val = input.value.trim();
+    const d = btn.dataset.d;
+    if (val.includes('@')) val = val.split('@')[0];
+    input.value = (val || 'user') + d;
+    input.focus();
+  };
+});
+
+// 新增出席者（預設不勾選，點選後才列入發送）
+$('#aa').onclick=()=>{
+  const e=$('#ae').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
+  const m=cur();
+  if(!m.att) m.att = [];
+  if(m.att.some(a=>a.e.toLowerCase()===e.toLowerCase()))return toast('這個信箱已經在名單中');
+  
+  let name = $('#an').value.trim();
+  if (!name) {
+    name = FUNNY_NAMES[Math.floor(Math.random() * FUNNY_NAMES.length)];
+  }
+
+  m.att.push({ n: name, e, selected: true });
+  $('#an').value=$('#ae').value='';
+  save();chips();
+};
+
+// 點擊出席者膠囊切換「勾選/取消」，點叉叉則刪除
+$('#chips').onclick=e=>{
+  const delIdx = e.target.dataset.del;
+  const chip = e.target.closest('.chip-item');
+  if(delIdx != null){
+    cur().att.splice(+delIdx, 1);
+    save();chips();
+    return;
+  }
+  if(chip){
+    const idx = +chip.dataset.i;
+    cur().att[idx].selected = !cur().att[idx].selected;
+    save();chips();
+  }
+};
+
+// 帶入勾選的出席者信箱
+$('#fill').onclick=()=>{
+  const m=cur();
+  const selectedMails = (m.att||[]).filter(a=>a.selected).map(a=>a.e);
+  if(!selectedMails.length) return toast('請先點擊出席者標籤進行勾選');
+  m.rcpt = selectedMails.join(', ');
+  $('#rc').value = m.rcpt;
+  save();updateRecipientCount();
+};
+
+$('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save();updateRecipientCount()};
+
+// 清除收音內容與清除會議紀錄
+$('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
+$('#cmn').onclick=()=>{cur().min='';$('#mn').value='';save();toast('會議紀錄已清空')};
 
 function setSt(on,t,h){recording=on;$('#rb').classList.toggle('on',on);$('#stt').textContent=t;$('#sth').textContent=h}
+
+// 即時串流收音：邊講邊跳字反饋
 $('#rb').onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR)return toast('這個瀏覽器不支援語音辨識，請用 Chrome，或直接貼上內容');
-  if(recording){recording=false;rec&&rec.stop();return}
-  rec=new SR();rec.lang=$('#l1').value;rec.continuous=true;rec.interimResults=true;committed=$('#tx').value;
-  rec.onresult=e=>{let i='';for(let k=e.resultIndex;k<e.results.length;k++){const r=e.results[k];if(r.isFinal)committed+=(committed&&!/\s$/.test(committed)?'\n':'')+r[0].transcript;else i+=r[0].transcript}
-    const t=$('#tx');t.value=committed+(i?(committed?'\n':'')+i:'');cur().tx=t.value;t.scrollTop=t.scrollHeight;save()};
-  rec.onerror=e=>{if(e.error=='not-allowed'||e.error=='service-not-allowed'){recording=false;toast('沒有麥克風權限，請在瀏覽器網址列允許使用')}};
-  rec.onend=()=>{if(recording){try{rec.start()}catch(e){}}else setSt(false,'待命中','按下圓鈕開始講話，文字會即時出現在下方')};
-  try{rec.start();setSt(true,'收音中','再按一次圓鈕停止')}catch(e){toast('無法啟動收音')}};
-$('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
+  if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
+  if(recording){
+    recording=false;
+    if(rec) rec.stop();
+    return;
+  }
+  
+  rec = new SR();
+  rec.lang = $('#l1').value;
+  rec.continuous = true;
+  rec.interimResults = true; // 啟動即時暫存反饋
+  committed = $('#tx').value;
+  
+  rec.onresult = e => {
+    let interim = '';
+    for(let k = e.resultIndex; k < e.results.length; k++){
+      const res = e.results[k];
+      if(res.isFinal){
+        committed += (committed && !/\s$/.test(committed) ? '\n' : '') + res[0].transcript;
+      } else {
+        interim += res[0].transcript;
+      }
+    }
+    const t = $('#tx');
+    t.value = committed + (interim ? ((committed ? '\n' : '') + interim) : '');
+    cur().tx = t.value;
+    t.scrollTop = t.scrollHeight;
+    save();
+  };
+  
+  rec.onerror = e => {
+    if(e.error=='not-allowed'||e.error=='service-not-allowed'){
+      recording=false;
+      toast('麥克風未授權，請在網址列允許存取麥克風');
+    }
+  };
+  
+  rec.onend = () => {
+    if(recording){
+      try{rec.start()}catch(err){}
+    } else {
+      setSt(false,'待命中','按下圓鈕開始講話，文字會即時出現在下方');
+    }
+  };
+  
+  try{
+    rec.start();
+    setSt(true,'收音中','再按一次圓鈕停止收音');
+  }catch(e){
+    toast('無法啟動麥克風收音');
+  }
+};
+
+// 發送行事曆邀請通知 (.ics 下載)
+$('#inv').onclick=()=>{
+  const m=cur(), to = getValidRecipients();
+  if(!to.length)return toast('請先加入並勾選出席者，或在收件信箱填入郵件');
+  const z=d=>new Date(d).toISOString().replace(/[-:]|\.\d{3}/g,'');
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MeetPulse//TW','BEGIN:VEVENT','UID:'+m.id+'@meetpulse','DTSTAMP:'+z(Date.now()),'DTSTART:'+z(st(m)),'DTEND:'+z(en(m)),'SUMMARY:'+(m.title||'會議'),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='meeting.ics';a.click();
+  toast('已下載 .ics 行事曆檔案');
+};
 
 // 整理並產出會議紀錄
 $('#gen').onclick = async () => {
@@ -249,13 +434,17 @@ $('#gen').onclick = async () => {
   b.textContent = '整理中…';
 
   try {
+    const payload = {
+      action: 'generate',
+      transcript: p,
+      targetLang: $('#l2').value
+    };
+    const customKey = $('#key').value.trim();
+    if (customKey) payload.customKey = customKey;
+
     const resp = await fetch(GAS_URL, {
       method: 'POST',
-      body: JSON.stringify({
-        action: 'generate',
-        transcript: p,
-        targetLang: $('#l2').value
-      })
+      body: JSON.stringify(payload)
     });
 
     const j = await resp.json();
@@ -276,11 +465,11 @@ $('#gen').onclick = async () => {
   }
 };
 
-// 寄送會議紀錄（透過 GAS 後台直接發信，不開本機郵件軟體）
+// 寄送會議紀錄（嚴格檢查：只有被勾選的人或收件框填入的人才會寄出）
 $('#snd').onclick = async () => {
-  const m = cur(), to = mails(), b = $('#snd');
+  const m = cur(), to = getValidRecipients(), b = $('#snd');
   if (!m.min.trim()) return toast('還沒有會議紀錄可以寄送');
-  if (!to.length) return toast('請先加入出席者或收件信箱');
+  if (!to.length) return toast('發送對象為 0 人！請先勾選出席者或填寫收件信箱');
 
   b.disabled = true;
   b.textContent = '寄送中…';
@@ -298,7 +487,7 @@ $('#snd').onclick = async () => {
 
     const j = await resp.json();
     if (j && j.status === 'success') {
-      toast('會議紀錄已成功全自動寄出！');
+      toast(`會議紀錄已成功寄送至 ${to.length} 位收件人！`);
     } else {
       throw new Error((j && j.message) || '寄送失敗');
     }
