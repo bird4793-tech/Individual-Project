@@ -3,59 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>(function(){var t;try{t=JSON.parse(localStorage.getItem("mpt"))}catch(e){}if(!t)t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t})()</script>
 <title>隨緣聽力｜甩鍋必備版</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&family=Noto+Serif+TC:wght@200;300;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#06070b;--ink:#e8e4da;--dim:#868991;--line:rgba(232,228,218,.11);--line2:rgba(232,228,218,.24);--amber:#e3a04c;--sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--serif:"Noto Serif TC","Songti TC",PMingLiU,serif}
+:root{color-scheme:dark;--bg:#06070b;--sky:radial-gradient(120% 60% at 50% 0,#10131c 0,#06070b 70%);--ink:#e8e4da;--dim:#9a9da6;--line:rgba(232,228,218,.14);--line2:rgba(232,228,218,.36);--amber:#e3a04c;--hov:#efb363;--on:#14100a;--ph:#7a7d86;--pop:#161922;--bld:#0b0d13;--warn:#e0786a;--star:1;--sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;--serif:"Noto Serif TC","Songti TC",PMingLiU,serif}
+:root[data-theme=light]{color-scheme:light;--bg:#f6f7f9;--sky:radial-gradient(120% 60% at 50% 0,#fff 0,#f6f7f9 70%);--ink:#16181d;--dim:#4f545d;--line:rgba(22,24,29,.14);--line2:rgba(22,24,29,.45);--amber:#b8620a;--hov:#8f4a05;--on:#16100a;--ph:#6b7079;--pop:#fff;--bld:#e1e5ec;--warn:#b3261e;--star:0}
 *{box-sizing:border-box;margin:0}
 html{background:var(--bg)}
-body{min-height:100vh;color:var(--ink);font:400 15px/1.7 var(--sans);background:radial-gradient(120% 60% at 50% 0,#10131c 0,var(--bg) 70%) no-repeat;position:relative;overflow-x:hidden}
-#stars{position:fixed;top:0;left:0;width:1px;height:1px;pointer-events:none}
+body{min-height:100vh;color:var(--ink);font:400 16px/1.7 var(--sans);background:var(--sky) no-repeat;position:relative;overflow-x:hidden}
+#stars{opacity:var(--star);position:fixed;top:0;left:0;width:1px;height:1px;pointer-events:none}
 .wrap{position:relative;max-width:1120px;margin:0 auto;padding:40px 28px 0}
 header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
 h1{font:300 26px/1.3 var(--serif);letter-spacing:.28em;display:flex;align-items:center;gap:14px}
 h1::before{content:"";width:11px;height:11px;border-radius:50%;background:var(--amber);box-shadow:inset -3px -2px 0 rgba(6,7,11,.55)}
-.sub{color:var(--dim);font-size:13px;letter-spacing:.12em;margin:6px 0 0 25px}
+.sub{color:var(--dim);font-size:14px;letter-spacing:.12em;margin:6px 0 0 25px}
 input,textarea,select,button{font:inherit;color:inherit}
 input,textarea,select{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line2);padding:8px 2px;outline:0;border-radius:0}
-input::placeholder,textarea::placeholder{color:#5d6068}
+input::placeholder,textarea::placeholder{color:var(--ph)}
 input:focus,textarea:focus,select:focus{border-color:var(--amber)}
-select option{background:#10131c}
-input[type=datetime-local]{color-scheme:dark}
-textarea{resize:vertical;line-height:1.8;border:1px solid var(--line);border-radius:6px;padding:12px 14px}
-#key{width:220px;font-size:13px}
+select option{background:var(--pop)}
+textarea{resize:vertical;line-height:1.8;border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
+#key{width:220px;font-size:14px}
+.hr{display:flex;align-items:center;gap:20px}
+.hr .lk{white-space:nowrap}
 .hero{text-align:center;padding:84px 0 72px}
-.hero p{color:var(--dim);font-size:13px;letter-spacing:.3em}
-#cd{font:200 clamp(60px,11vw,128px)/1.1 var(--serif);letter-spacing:.02em;margin:10px 0 8px;font-variant-numeric:tabular-nums}
+.hero p{color:var(--dim);font-size:15px;letter-spacing:.3em}
+#cd{font:300 clamp(60px,11vw,128px)/1.1 var(--serif);letter-spacing:.02em;margin:10px 0 8px;font-variant-numeric:tabular-nums}
 #cd em{font-style:normal;color:var(--amber);padding:0 .08em;font-weight:200}
-#cd u{text-decoration:none;font:300 18px var(--sans);color:var(--dim);margin:0 .6em 0 .15em;letter-spacing:.1em}
-#cd .none{font:200 32px var(--serif);color:var(--dim);letter-spacing:.2em;padding:30px 0}
+#cd u{text-decoration:none;font:300 20px var(--sans);color:var(--dim);margin:0 .6em 0 .15em;letter-spacing:.1em}
+#cd .none{font:300 32px var(--serif);color:var(--dim);letter-spacing:.2em;padding:30px 0}
 #cm{color:var(--ink);font-size:15px;letter-spacing:.08em;min-height:26px}
 .grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:0 72px;padding-bottom:70px}
 section{border-top:1px solid var(--line);padding:26px 0 34px}
 h2{font:300 19px var(--serif);letter-spacing:.2em;margin-bottom:20px;display:flex;align-items:center;gap:12px}
-label,.lb{display:block;color:var(--dim);font-size:12.5px;letter-spacing:.1em;margin:18px 0 0}
+label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;margin:18px 0 0}
 .row{display:flex;gap:18px;align-items:flex-end}
 .row>*{flex:1}.row>.sm{flex:0 0 96px}
-.btn{cursor:pointer;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:11px 22px;letter-spacing:.14em;font-size:14px;transition:.2s;width:100%}
+.btn{cursor:pointer;border:1px solid var(--line2);background:transparent;border-radius:999px;padding:11px 22px;letter-spacing:.14em;font-size:16px;transition:.2s;width:100%}
 .btn:hover{border-color:var(--amber);color:var(--amber)}
-.btn.main{background:var(--amber);border-color:var(--amber);color:#14100a;font-weight:500}
-.btn.main:hover{background:#efb363;color:#14100a}
+.btn.main{background:var(--amber);border-color:var(--amber);color:var(--on);font-weight:500}
+.btn.main:hover{background:var(--hov);border-color:var(--hov);color:var(--on)}
 .btn:disabled{opacity:.5;cursor:wait}
-.lk{background:none;border:0;color:var(--dim);cursor:pointer;font-size:12.5px;letter-spacing:.08em;padding:0}
+.lk{background:none;border:0;color:var(--dim);cursor:pointer;font-size:14px;letter-spacing:.08em;padding:0}
 .lk:hover{color:var(--amber)}
 .bar{display:flex;justify-content:space-between;align-items:baseline}
 .acts{display:flex;gap:14px}
 #list{margin:-6px 0 12px}
 .mi{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-left:2px solid transparent;cursor:pointer;color:var(--dim);transition:.2s}
 .mi:hover{color:var(--ink)}
-.mi.on{border-color:var(--amber);color:var(--ink);background:linear-gradient(90deg,rgba(227,160,76,.07),transparent)}
+.mi.on{border-color:var(--amber);color:var(--ink);background:linear-gradient(90deg,color-mix(in srgb,var(--amber) 10%,transparent),transparent)}
 .mi span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mi small{font-size:12.5px;white-space:nowrap}
-.cf{margin-left:8px;color:#e0786a;font-weight:400;font-size:12px;border:1px solid rgba(224,120,106,.5);border-radius:3px;padding:0 5px}
+.mi small{font-size:14px;white-space:nowrap}
+.cf{margin-left:8px;color:var(--warn);font-weight:400;font-size:13px;border:1px solid var(--warn);border-radius:3px;padding:0 5px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
-.chips span{border:1px solid var(--line2);border-radius:999px;padding:2px 6px 2px 12px;font-size:13px}
+.chips span{border:1px solid var(--line2);border-radius:999px;padding:2px 6px 2px 12px;font-size:15px}
 .chips i{font-style:normal;cursor:pointer;color:var(--dim);padding:0 6px}
 .chips i:hover{color:var(--amber)}
 .rec{display:flex;align-items:center;gap:22px;margin-bottom:20px}
@@ -64,20 +67,39 @@ label,.lb{display:block;color:var(--dim);font-size:12.5px;letter-spacing:.1em;ma
 .rb i{width:24px;height:24px;border-radius:50%;background:var(--amber);transition:.2s}
 .rb.on{border-color:var(--amber);animation:p 2s infinite}
 .rb.on i{border-radius:5px;width:20px;height:20px}
-@keyframes p{to{box-shadow:0 0 0 16px rgba(227,160,76,0)}}
-.rb{box-shadow:0 0 0 0 rgba(227,160,76,.3)}
+@keyframes p{to{box-shadow:0 0 0 16px transparent}}
+.rb{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 30%,transparent)}
 .rec b{font:300 17px var(--serif);letter-spacing:.2em;display:block;font-weight:300}
-.rec small{color:var(--dim);font-size:12.5px;letter-spacing:.06em}
+.rec small{color:var(--dim);font-size:14px;letter-spacing:.06em}
 .rec .lk{margin-left:auto}
 #tx{height:230px}#mn{height:260px}
 .sel{display:flex;gap:18px;margin:6px 0 22px}.sel div{flex:1}
 .sendrow{display:flex;gap:14px;margin-top:14px}
 footer{position:relative;margin-top:20px;height:160px;line-height:0}
 #sky{width:100%;height:160px;display:block}
-#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);background:#161922;border:1px solid var(--line2);padding:10px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:90vw}
+#sky .b{fill:var(--bld)}
+:root[data-theme=light] body{font-size:17px}
+:root[data-theme=light] .sub,:root[data-theme=light] label,:root[data-theme=light] .lb,:root[data-theme=light] .lk,:root[data-theme=light] .mi small,:root[data-theme=light] .rec small,:root[data-theme=light] .chips span{font-size:15px}
+:root[data-theme=light] h1::before{background:#e3a04c;box-shadow:inset -3px -2px 0 rgba(22,24,29,.25)}
+:root[data-theme=light] #cd,:root[data-theme=light] #cd em{font-weight:400}
+:root[data-theme=light] #cd u{font-size:20px}
+:root[data-theme=light] input,:root[data-theme=light] select{background:#eceef2;border-bottom:2px solid var(--line2);padding:11px 12px;font-size:17px;border-radius:4px 4px 0 0}
+:root[data-theme=light] textarea{background:#fff;border:1.5px solid var(--line2);font-size:17px}
+:root[data-theme=light] .btn{border:2px solid var(--ink);color:var(--ink);font-size:16px;min-height:50px}
+:root[data-theme=light] .btn:hover{background:transparent;border-color:var(--amber);color:var(--amber)}
+:root[data-theme=light] .btn.main{background:#e3a04c;border-color:#e3a04c;color:#16100a;font-weight:500}
+:root[data-theme=light] .btn.main:hover{background:#eeb35f;border-color:#eeb35f;color:#16100a}
+:root[data-theme=light] .rb{border:2px solid var(--ink)}
+:root[data-theme=light] #toast{background:#16181d;color:#fff;border-color:#16181d}
+:root[data-theme=light] section{border-top:0;background:#eceff4;border-radius:14px;padding:26px 28px 30px;margin-bottom:18px}
+:root[data-theme=light] section input,:root[data-theme=light] section select{background:#fff}
+:root[data-theme=light] footer{display:none}
+:root[data-theme=light] .wrap{padding-bottom:48px}
+:root[data-theme=light] #sky .w{display:none}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);background:var(--pop);border:1px solid var(--line2);padding:10px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:90vw}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}#key{width:100%}.hero{padding:56px 0 44px}}
+@media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}.hr{width:100%}#key{flex:1;width:auto}.hero{padding:56px 0 44px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -86,7 +108,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <div class="wrap">
 <header>
   <div><h1>隨緣聽力</h1><div class="sub">甩鍋必備版 語音紀錄整理與出席管理</div></div>
-  <input id="key" type="password" placeholder="API Key" autocomplete="off" aria-label="API Key">
+  <div class="hr"><button class="lk" id="th" type="button"></button><input id="key" type="password" placeholder="API Key" autocomplete="off" aria-label="API Key"></div>
 </header>
 
 <div class="hero">
@@ -109,7 +131,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
   </section>
   <section>
-    <h2>出席者</h2>
+    <div class="bar"><h2>出席者</h2><span class="acts"><button class="lk" id="add-all-presets">常用名冊全部加入</button></span></div>
     <div class="row"><div><input id="an" placeholder="姓名"></div><div><input id="ae" type="email" placeholder="電子郵件"></div><div class="sm" style="flex-basis:70px"><button class="btn" id="aa" style="padding:8px 0">加入</button></div></div>
     <div class="chips" id="chips"></div>
     <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入出席者信箱</button><button class="lk" id="clr">清空</button></span></div>
@@ -129,7 +151,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     <textarea id="tx" placeholder="也可以直接貼上討論內容…"></textarea>
     <div class="sel">
       <div><label for="l1" style="margin-top:0">收音語言</label><select id="l1"><option value="zh-TW">繁體中文</option><option value="en-US">English</option><option value="ja-JP">日本語</option></select></div>
-      <div><label for="l2" style="margin-top:0">紀錄語言</label><select id="l2"><option value="繁體中文">繁體中文（標準）</option><option value="English">English</option><option value="日本語">日本語</option><option value="Deutsch">Deutsch</option><option value="Français">Français</option></select></div>
+      <div><label for="l2" style="margin-top:0">紀錄語言</label><select id="l2"><option value="繁體中文">繁體中文（標準）</option><option value="English">English</option><option value="日本語">日本語</option><option value="Deutsch">Deutsch</option><option value="Français">Français</option><option value="Italiano">Italiano</option><option value="Español">Español</option></select></div>
     </div>
     <button class="btn main" id="gen">整理並產出會議紀錄</button>
   </section>
@@ -148,6 +170,14 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <script>
 const GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
 
+const presetPool = [
+  { n: '出席者 1', e: 'bird4793@livemail.tw' },
+  { n: '隔壁部門偷吃零食的小美', e: 'snack.mei@hotmail.com' },
+  { n: '路過被抓進來的倒楣工讀生', e: 'parttime@outlook.com' },
+  { n: '只會說okok的主管', e: 'boss.ok@hotmail.com' },
+  { n: '天天減肥但必訂手搖的Peggy', e: 'boba.peggy@outlook.com' }
+];
+
 const $=s=>document.querySelector(s);
 const L=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
 const W=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
@@ -161,14 +191,10 @@ function nm(){
   d.setHours(d.getHours()+1,0,0,0);
   return {
     id:Date.now()+Math.random().toString(36).slice(2,5),
-    title:'火星開分公司可行性閉門會議',
+    title:'',
     time:lt(d),
     dur:30,
-    att:[
-      {n:'出席者 1',e:'bird4793@livemail.tw'},
-      {n:'隔壁部門小美',e:'snack.mei@hotmail.com'},
-      {n:'倒楣工讀生',e:'parttime@outlook.com'}
-    ],
+    att:[{n:'出席者 1',e:'bird4793@livemail.tw'}],
     rcpt:'bird4793@livemail.tw',
     tx:'',
     min:''
@@ -215,9 +241,20 @@ $('#tx').oninput=e=>{cur().tx=e.target.value;save()};
 $('#mn').oninput=e=>{cur().min=e.target.value;save()};
 
 $('#aa').onclick=()=>{const e=$('#ae').value.trim();if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
-  const m=cur();if(m.att.some(a=>a.e==e))return toast('這個信箱已經在名單中');
+  const m=cur();if(m.att.some(a=>a.e.toLowerCase()==e.toLowerCase()))return toast('這個信箱已經在名單中');
   m.att.push({n:$('#an').value.trim()||e.split('@')[0],e});$('#an').value=$('#ae').value='';save();chips()};
 $('#chips').onclick=e=>{const i=e.target.dataset.i;if(i==null)return;cur().att.splice(+i,1);save();chips()};
+
+$('#add-all-presets').onclick=()=>{
+  const m=cur(),ce=m.att.map(a=>a.e.toLowerCase());
+  presetPool.forEach(p=>{
+    if(!ce.includes(p.e.toLowerCase())){
+      m.att.push({n:p.n,e:p.e});
+    }
+  });
+  save();chips();toast('已匯入常用名冊出席人員');
+};
+
 $('#fill').onclick=()=>{const m=cur();if(!m.att.length)return toast('出席者名單是空的');m.rcpt=m.att.map(a=>a.e).join(', ');$('#rc').value=m.rcpt;save()};
 $('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save()};
 const mails=()=>[...new Set([...cur().att.map(a=>a.e),...cur().rcpt.split(/[,;\s]+/).filter(Boolean)])];
@@ -237,7 +274,7 @@ $('#inv').onclick=async()=>{
         content:`各位與會夥伴 您好：\n\n已建立會議項目：「${m.title||'會議'}」。\n會議時間：${tf(m.time)}（預計 ${m.dur} 分鐘）\n\n- 會議管理系統`
       })
     });
-    toast(`邀請通知已透過雲端發送給 ${to.length} 位與會人員`);
+    toast(`邀請通知已由雲端發送給 ${to.length} 位與會人員`);
   }catch(e){
     toast('發送失敗，請確認網路連線');
   }
@@ -267,7 +304,7 @@ $('#gen').onclick=async()=>{
 
   b.disabled=true;b.textContent='整理中…';
 
-  // 軌道 A：使用者自行輸入 API Key（前端直連 Gemini）
+  // 軌道 A：自行輸入 API Key（前端直連 Gemini）
   if(k){
     try{
       const prompt=`你是一位精通多國語言的專業商務會議秘書。
@@ -320,7 +357,7 @@ ${m.tx}
     const result=await response.json();
     if(result.status==='success'){
       m.min=result.text;
-      $('#mn').value=m.min;save();toast('會議紀錄已由後台代理順利產出');
+      $('#mn').value=m.min;save();toast('會議紀錄已由後台代理產出');
     }else{
       throw new Error(result.message||'雲端處理失敗');
     }
@@ -366,10 +403,12 @@ $('#stars').style.boxShadow=s.join(',')})();
 
 /* skyline: quiet silhouette, a few lit windows */
 (()=>{let x=0,r=11,o='';const R=()=>(r=r*16807%2147483647)/2147483647;
-while(x<1600){const w=30+R()*60|0,h=24+R()*100|0;o+=`<rect x="${x}" y="${160-h}" width="${w}" height="${h}" fill="#0b0d13"/>`;
-for(let y=160-h+8;y<150;y+=14)for(let c=x+6;c<x+w-8;c+=12)if(R()<.07)o+=`<rect x="${c}" y="${y}" width="3" height="5" fill="#e3a04c" opacity="${(.35+R()*.5).toFixed(2)}"/>`;
+while(x<1600){const w=30+R()*60|0,h=24+R()*100|0;o+=`<rect x="${x}" y="${160-h}" width="${w}" height="${h}" class="b"/>`;
+for(let y=160-h+8;y<150;y+=14)for(let c=x+6;c<x+w-8;c+=12)if(R()<.07)o+=`<rect class="w" x="${c}" y="${y}" width="3" height="5" fill="#e3a04c" opacity="${(.35+R()*.5).toFixed(2)}"/>`;
 x+=w+(R()*8|0)}$('#sky').innerHTML=o})();
 
+const th=()=>{$('#th').textContent=document.documentElement.dataset.theme=='light'?'切換為夜間':'切換為日間'};
+$('#th').onclick=()=>{const t=document.documentElement.dataset.theme=='light'?'dark':'light';document.documentElement.dataset.theme=t;W('mpt',t);th()};th();
 load();
 </script>
 </body>
