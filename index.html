@@ -25,7 +25,7 @@ input::placeholder,textarea::placeholder{color:var(--ph)}
 input:focus,textarea:focus,select:focus{border-color:var(--amber)}
 select option{background:var(--pop)}
 textarea{resize:vertical;line-height:1.8;border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
-#key{max-width:220px;font-size:13px;letter-spacing:.05em}
+#key{max-width:130px;font-size:14px;letter-spacing:.05em}
 .hr{display:flex;align-items:center;gap:20px}
 .hr .lk{white-space:nowrap}
 .hero{text-align:center;padding:84px 0 72px}
@@ -58,15 +58,15 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .mi small{font-size:14px;white-space:nowrap}
 .cf{margin-left:8px;color:var(--warn);font-weight:400;font-size:13px;border:1px solid var(--warn);border-radius:3px;padding:0 5px}
 
-/* 出席者 Chips：支援選取狀態 */
+/* 出席者 Chips：支援選取狀態，移除信箱顯示 */
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
-.chips span{border:1px solid var(--line2);border-radius:999px;padding:3px 8px 3px 12px;font-size:14px;cursor:pointer;user-select:none;transition:.2s;opacity:.45}
+.chips span{border:1px solid var(--line2);border-radius:999px;padding:3px 10px 3px 12px;font-size:14px;cursor:pointer;user-select:none;transition:.2s;opacity:.45}
 .chips span.selected{opacity:1;border-color:var(--amber);color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
 .chips i{font-style:normal;cursor:pointer;color:var(--dim);padding-left:6px;font-size:16px}
 .chips i:hover{color:var(--warn)}
 
 .quick-domains{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.quick-domains button{border:1px dashed var(--line2);background:none;border-radius:4px;padding:2px 8px;font-size:12px;color:var(--dim);cursor:pointer;transition:.2s}
+.quick-domains button{border:1px dashed var(--line2);background:none;border-radius:4px;padding:3px 8px;font-size:12px;color:var(--dim);cursor:pointer;transition:.2s}
 .quick-domains button:hover{border-color:var(--amber);color:var(--amber)}
 
 .rec{display:flex;align-items:center;gap:22px;margin-bottom:20px}
@@ -119,7 +119,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   <div><h1>隨緣聽力</h1><div class="sub">甩鍋必備版 語音紀錄整理與出席管理</div></div>
   <div class="hr">
     <button class="lk" id="th" type="button"></button>
-    <input id="key" type="password" placeholder="Gemini API Key（留空用後台）" autocomplete="off" aria-label="API Key">
+    <input id="key" type="password" placeholder="API Key" autocomplete="off" aria-label="API Key">
   </div>
 </header>
 
@@ -145,15 +145,14 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   <section>
     <h2>出席者</h2>
     <div class="row">
-      <div><input id="an" placeholder="姓名（留空自動甩鍋）"></div>
+      <div><input id="an" placeholder="姓名（留空白自動抽籤）"></div>
       <div><input id="ae" type="email" placeholder="電子郵件"></div>
       <div class="sm" style="flex-basis:70px"><button class="btn" id="aa" style="padding:8px 0">加入</button></div>
     </div>
     <div class="quick-domains">
       <button type="button" class="qd" data-d="@gmail.com">@gmail.com</button>
-      <button type="button" class="qd" data-d="@yahoo.com.tw">@yahoo.com.tw</button>
+      <button type="button" class="qd" data-d="@hotmail.com">@hotmail.com</button>
       <button type="button" class="qd" data-d="@outlook.com">@outlook.com</button>
-      <button type="button" class="qd" data-d="@company.com">@company.com</button>
     </div>
     <div class="chips" id="chips"></div>
     <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入勾選信箱</button><button class="lk" id="clr">清空</button></span></div>
@@ -172,8 +171,32 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <textarea id="tx" placeholder="也可以直接貼上討論內容…"></textarea>
     <div class="sel">
-      <div><label for="l1" style="margin-top:0">收音語言</label><select id="l1"><option value="zh-TW">繁體中文</option><option value="en-US">English</option><option value="ja-JP">日本語</option></select></div>
-      <div><label for="l2" style="margin-top:0">紀錄語言</label><select id="l2"><option>日本語</option><option>繁體中文（標準）</option><option>English</option></select></div>
+      <div>
+        <label for="l1" style="margin-top:0">收音語言</label>
+        <select id="l1">
+          <option value="zh-TW">繁體中文</option>
+          <option value="en-US">English</option>
+          <option value="ja-JP">日本語</option>
+          <option value="th-TH">ไทย (Thai)</option>
+          <option value="ko-KR">한국어 (Korean)</option>
+          <option value="es-ES">Español</option>
+          <option value="fr-FR">Français</option>
+          <option value="de-DE">Deutsch</option>
+        </select>
+      </div>
+      <div>
+        <label for="l2" style="margin-top:0">紀錄語言</label>
+        <select id="l2">
+          <option>日本語</option>
+          <option>繁體中文（標準）</option>
+          <option>English</option>
+          <option>ไทย</option>
+          <option>한국어</option>
+          <option>Español</option>
+          <option>Français</option>
+          <option>Deutsch</option>
+        </select>
+      </div>
     </div>
     <button class="btn main" id="gen">整理並產出會議紀錄</button>
   </section>
@@ -220,6 +243,17 @@ function nm(){
 }
 
 let S=L('mp2',null);
+// 徹底清理歷史殘留的舊測試出席名單
+if(S && S.ms){
+  S.ms.forEach(m => {
+    if(m.att){
+      m.att = m.att.filter(a => !a.e.toLowerCase().includes('bird4793'));
+    }
+    if(m.rcpt && m.rcpt.toLowerCase().includes('bird4793')){
+      m.rcpt = '';
+    }
+  });
+}
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
 if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
@@ -231,7 +265,7 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
 
-// 動態統計寄送名單：只納入被勾選的出席者 + 收件信箱手動填入的信箱
+// 動態統計寄送名單
 function getValidRecipients(){
   const m = cur();
   const selectedAttMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
@@ -248,7 +282,7 @@ function chips(){
   const m=cur();
   $('#chips').innerHTML=(m.att||[]).map((a,i)=>`
     <span class="chip-item${a.selected?' selected':''}" data-i="${i}">
-      ${esc(a.n)} <small style="opacity:.65">(${esc(a.e)})</small>
+      ${esc(a.n)}
       <i data-del="${i}" title="刪除">×</i>
     </span>
   `).join('');
@@ -305,7 +339,7 @@ $All('.qd').forEach(btn => {
   };
 });
 
-// 新增出席者（預設不勾選，點選後才列入發送）
+// 新增出席者（留空自動抽籤）
 $('#aa').onclick=()=>{
   const e=$('#ae').value.trim();
   if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
@@ -357,7 +391,7 @@ $('#cmn').onclick=()=>{cur().min='';$('#mn').value='';save();toast('會議紀錄
 
 function setSt(on,t,h){recording=on;$('#rb').classList.toggle('on',on);$('#stt').textContent=t;$('#sth').textContent=h}
 
-// 即時串流收音：邊講邊跳字反饋
+// 即時串流收音：邊講邊跳字回饋
 $('#rb').onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
@@ -370,7 +404,7 @@ $('#rb').onclick=()=>{
   rec = new SR();
   rec.lang = $('#l1').value;
   rec.continuous = true;
-  rec.interimResults = true; // 啟動即時暫存反饋
+  rec.interimResults = true; // 啟動即時暫存回饋
   committed = $('#tx').value;
   
   rec.onresult = e => {
@@ -465,7 +499,7 @@ $('#gen').onclick = async () => {
   }
 };
 
-// 寄送會議紀錄（嚴格檢查：只有被勾選的人或收件框填入的人才會寄出）
+// 寄送會議紀錄
 $('#snd').onclick = async () => {
   const m = cur(), to = getValidRecipients(), b = $('#snd');
   if (!m.min.trim()) return toast('還沒有會議紀錄可以寄送');
@@ -502,11 +536,12 @@ $('#snd').onclick = async () => {
 $('#cp').onclick=()=>{const t=cur().min;if(!t.trim())return toast('還沒有內容可以複製');
   navigator.clipboard?navigator.clipboard.writeText(t).then(()=>toast('已複製'),()=>toast('複製失敗')):toast('此瀏覽器不支援複製')};
 
-/* stars: static, sparse */
+/* stars */
 (()=>{let r=7,s=[];const R=()=>(r=r*16807%2147483647)/2147483647;
 for(let i=0;i<110;i++)s.push(`${(R()*100).toFixed(1)}vw ${(R()*100).toFixed(1)}vh 0 ${R()<.14?'1px':'0'} rgba(232,228,218,${(.15+R()*.5).toFixed(2)})`);
 $('#stars').style.boxShadow=s.join(',')})();
-/* skyline: quiet silhouette, a few lit windows */
+
+/* skyline */
 (()=>{let x=0,r=11,o='';const R=()=>(r=r*16807%2147483647)/2147483647;
 while(x<1600){const w=30+R()*60|0,h=24+R()*100|0;o+=`<rect x="${x}" y="${160-h}" width="${w}" height="${h}" class="b"/>`;
 for(let y=160-h+8;y<150;y+=14)for(let c=x+6;c<x+w-8;c+=12)if(R()<.07)o+=`<rect class="w" x="${c}" y="${y}" width="3" height="5" fill="#e3a04c" opacity="${(.35+R()*.5).toFixed(2)}"/>`;
