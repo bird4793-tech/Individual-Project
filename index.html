@@ -471,12 +471,14 @@ $('#inv').onclick=()=>{
   toast('已下載 .ics 行事曆檔案');
 };
 
-// 整理會議紀錄
+// 整理會議紀錄（關鍵修正：只過濾當前有選取/亮橘框的出席者）
 $('#gen').onclick = async () => {
   const m = cur(), b = $('#gen');
   if (!m.tx.trim()) return toast('還沒有討論內容，請先收音或貼上文字');
 
-  const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${m.att.map(a => a.n).join('、') || '（未填）'}\n\n逐字稿：\n${m.tx}`;
+  const selectedNames = (m.att || []).filter(a => a.selected).map(a => a.n).join('、');
+
+  const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${selectedNames || '（未填）'}\n\n逐字稿：\n${m.tx}`;
   
   b.disabled = true;
   b.textContent = '整理中…';
@@ -564,7 +566,7 @@ x+=w+(R()*8|0)}$('#sky').innerHTML=o})();
 const th=()=>{$('#th').textContent=document.documentElement.dataset.theme=='light'?'切換為夜間':'切換為日間'};
 $('#th').onclick=()=>{const t=document.documentElement.dataset.theme=='light'?'dark':'light';document.documentElement.dataset.theme=t;W('mpt',t);th()};th();
 
-// 強制刷新歷史快取中的名單班底
+// 強制清理並重置名單班底
 if(cur() && (!cur().att || cur().att.length <= 2)){
   cur().att = defaultAttendees();
   syncAttToRcpt();
