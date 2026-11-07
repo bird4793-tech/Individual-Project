@@ -223,7 +223,11 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9Y
 const FUNNY_NAMES = [
   '勢利眼們', '背鍋俠', '甩鍋大師', '隔壁部門小美', '倒楣工讀生', 
   '主管的心腹', '薪水小偷', '會議旁聽路人', '專案吉祥物', '摸魚王者',
-  '救火大隊長', '無辜路人甲', '按讚機器人', '神隱同事'
+  '救火大隊長', '無辜路人甲', '按讚機器人', '神隱同事', '點頭如搗蒜專家',
+  '鍵盤專案經理', 'PPT 裁縫師', '靈魂出竅組長', '已讀不回大師', '吃瓜第一線',
+  '會議氣氛組', '微笑點頭傀儡', '無情推事機', '裝忙高手', '深藏不露隱形人',
+  '茶水間情報員', '準時打卡戰士', '加班表演藝術家', '全肯定機器人', '預算毀滅者',
+  '靈感枯竭設計師', '隨機應變工讀生', '只回收到專員', '靜音旁聽觀眾', '幽靈專案顧問'
 ];
 
 const $=s=>document.querySelector(s);
@@ -259,18 +263,19 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
 
-// 同步勾選的出席者信箱到底部收件框
+// 自動同步勾選的出席者至收件框：格式為 姓名 <email>
 function syncAttToRcpt(){
   const m = cur();
-  const selectedMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
+  const selectedMails = (m.att || []).filter(a => a.selected).map(a => `${a.n} <${a.e.trim()}>`);
   m.rcpt = selectedMails.join(', ');
   $('#rc').value = m.rcpt;
 }
 
 function getValidRecipients(){
   const m = cur();
+  // 提取純 Email 供後台寄信
   const selectedAttMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
-  const manualMails = (m.rcpt || '').split(/[,;\s]+/).filter(e => /^\S+@\S+\.\S+$/.test(e));
+  const manualMails = (m.rcpt || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
   return [...new Set([...selectedAttMails, ...manualMails])];
 }
 
