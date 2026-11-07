@@ -58,7 +58,6 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .mi small{font-size:14px;white-space:nowrap}
 .cf{margin-left:8px;color:var(--warn);font-weight:400;font-size:13px;border:1px solid var(--warn);border-radius:3px;padding:0 5px}
 
-/* 出席者 Chips：支援選取狀態，移除信箱顯示 */
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
 .chips span{border:1px solid var(--line2);border-radius:999px;padding:3px 10px 3px 12px;font-size:14px;cursor:pointer;user-select:none;transition:.2s;opacity:.45}
 .chips span.selected{opacity:1;border-color:var(--amber);color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent)}
@@ -145,7 +144,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   <section>
     <h2>出席者</h2>
     <div class="row">
-      <div><input id="an" placeholder="姓名（留空白自動抽籤）"></div>
+      <div><input id="an" placeholder="姓名"></div>
       <div><input id="ae" type="email" placeholder="電子郵件"></div>
       <div class="sm" style="flex-basis:70px"><button class="btn" id="aa" style="padding:8px 0">加入</button></div>
     </div>
@@ -243,15 +242,10 @@ function nm(){
 }
 
 let S=L('mp2',null);
-// 徹底清理歷史殘留的舊測試出席名單
 if(S && S.ms){
   S.ms.forEach(m => {
-    if(m.att){
-      m.att = m.att.filter(a => !a.e.toLowerCase().includes('bird4793'));
-    }
-    if(m.rcpt && m.rcpt.toLowerCase().includes('bird4793')){
-      m.rcpt = '';
-    }
+    if(m.att) m.att = m.att.filter(a => !a.e.toLowerCase().includes('bird4793'));
+    if(m.rcpt && m.rcpt.toLowerCase().includes('bird4793')) m.rcpt = '';
   });
 }
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
@@ -265,7 +259,14 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
 
-// 動態統計寄送名單
+// 同步勾選的出席者信箱到底部收件框
+function syncAttToRcpt(){
+  const m = cur();
+  const selectedMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
+  m.rcpt = selectedMails.join(', ');
+  $('#rc').value = m.rcpt;
+}
+
 function getValidRecipients(){
   const m = cur();
   const selectedAttMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
@@ -327,7 +328,7 @@ $('#rc').oninput=e=>{cur().rcpt=e.target.value;save();updateRecipientCount()};
 $('#tx').oninput=e=>{cur().tx=e.target.value;save()};
 $('#mn').oninput=e=>{cur().min=e.target.value;save()};
 
-// 網域快選按鈕
+// 網域快選
 $All('.qd').forEach(btn => {
   btn.onclick = () => {
     const input = $('#ae');
@@ -339,7 +340,7 @@ $All('.qd').forEach(btn => {
   };
 });
 
-// 新增出席者（留空自動抽籤）
+// 加入出席者
 $('#aa').onclick=()=>{
   const e=$('#ae').value.trim();
   if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
@@ -354,44 +355,37 @@ $('#aa').onclick=()=>{
 
   m.att.push({ n: name, e, selected: true });
   $('#an').value=$('#ae').value='';
+  syncAttToRcpt();
   save();chips();
 };
 
-// 點擊出席者膠囊切換「勾選/取消」，點叉叉則刪除
+// 點擊膠囊：切換選取狀態並即時連動下方信箱框；點叉叉刪除
 $('#chips').onclick=e=>{
   const delIdx = e.target.dataset.del;
   const chip = e.target.closest('.chip-item');
   if(delIdx != null){
     cur().att.splice(+delIdx, 1);
+    syncAttToRcpt();
     save();chips();
     return;
   }
   if(chip){
     const idx = +chip.dataset.i;
     cur().att[idx].selected = !cur().att[idx].selected;
+    syncAttToRcpt();
     save();chips();
   }
 };
 
-// 帶入勾選的出席者信箱
-$('#fill').onclick=()=>{
-  const m=cur();
-  const selectedMails = (m.att||[]).filter(a=>a.selected).map(a=>a.e);
-  if(!selectedMails.length) return toast('請先點擊出席者標籤進行勾選');
-  m.rcpt = selectedMails.join(', ');
-  $('#rc').value = m.rcpt;
-  save();updateRecipientCount();
-};
+$('#fill').onclick=()=>{syncAttToRcpt();save();chips();toast('已重新帶入勾選信箱')};
+$('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';(cur().att||[]).forEach(a=>a.selected=false);save();chips()};
 
-$('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save();updateRecipientCount()};
-
-// 清除收音內容與清除會議紀錄
 $('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
 $('#cmn').onclick=()=>{cur().min='';$('#mn').value='';save();toast('會議紀錄已清空')};
 
 function setSt(on,t,h){recording=on;$('#rb').classList.toggle('on',on);$('#stt').textContent=t;$('#sth').textContent=h}
 
-// 即時串流收音：邊講邊跳字回饋
+// 即時串流收音
 $('#rb').onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
@@ -404,7 +398,7 @@ $('#rb').onclick=()=>{
   rec = new SR();
   rec.lang = $('#l1').value;
   rec.continuous = true;
-  rec.interimResults = true; // 啟動即時暫存回饋
+  rec.interimResults = true;
   committed = $('#tx').value;
   
   rec.onresult = e => {
@@ -447,7 +441,7 @@ $('#rb').onclick=()=>{
   }
 };
 
-// 發送行事曆邀請通知 (.ics 下載)
+// 行事曆檔案下載
 $('#inv').onclick=()=>{
   const m=cur(), to = getValidRecipients();
   if(!to.length)return toast('請先加入並勾選出席者，或在收件信箱填入郵件');
@@ -457,7 +451,7 @@ $('#inv').onclick=()=>{
   toast('已下載 .ics 行事曆檔案');
 };
 
-// 整理並產出會議紀錄
+// 整理會議紀錄
 $('#gen').onclick = async () => {
   const m = cur(), b = $('#gen');
   if (!m.tx.trim()) return toast('還沒有討論內容，請先收音或貼上文字');
