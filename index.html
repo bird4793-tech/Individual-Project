@@ -230,6 +230,17 @@ const FUNNY_NAMES = [
   '靈感枯竭設計師', '隨機應變工讀生', '只回收到專員', '靜音旁聽觀眾', '幽靈專案顧問'
 ];
 
+function defaultAttendees() {
+  return [
+    { n: '打工仔', e: 'bird4793@livemail.tw', selected: true },
+    { n: '隔壁部門小美', e: 'snack.mei@hotmail.com', selected: false },
+    { n: '倒楣工讀生', e: 'parttime@outlook.com', selected: false },
+    { n: '甩鍋大師', e: 'passmaster@gmail.com', selected: false },
+    { n: '主管的心腹', e: 'bosspet@hotmail.com', selected: false },
+    { n: '專案背鍋俠', e: 'scapegoat@gmail.com', selected: false }
+  ];
+}
+
 const $=s=>document.querySelector(s);
 const $All=s=>document.querySelectorAll(s);
 const L=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
@@ -242,16 +253,21 @@ const tf=t=>new Date(t).toLocaleString('zh-TW',{month:'numeric',day:'numeric',ho
 function nm(){
   const d=new Date();
   d.setHours(d.getHours()+1,0,0,0);
-  return {id:Date.now()+Math.random().toString(36).slice(2,5),title:'',time:lt(d),dur:30,att:[],rcpt:'',tx:'',min:''};
+  const defAtt = defaultAttendees();
+  const defRcpt = defAtt.filter(a => a.selected).map(a => `${a.n} <${a.e}>`).join(', ');
+  return {
+    id: Date.now() + Math.random().toString(36).slice(2,5),
+    title: '',
+    time: lt(d),
+    dur: 30,
+    att: defAtt,
+    rcpt: defRcpt,
+    tx: '',
+    min: ''
+  };
 }
 
 let S=L('mp2',null);
-if(S && S.ms){
-  S.ms.forEach(m => {
-    if(m.att) m.att = m.att.filter(a => !a.e.toLowerCase().includes('bird4793'));
-    if(m.rcpt && m.rcpt.toLowerCase().includes('bird4793')) m.rcpt = '';
-  });
-}
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
 if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
@@ -273,7 +289,6 @@ function syncAttToRcpt(){
 
 function getValidRecipients(){
   const m = cur();
-  // 提取純 Email 供後台寄信
   const selectedAttMails = (m.att || []).filter(a => a.selected).map(a => a.e.trim());
   const manualMails = (m.rcpt || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
   return [...new Set([...selectedAttMails, ...manualMails])];
@@ -548,6 +563,14 @@ x+=w+(R()*8|0)}$('#sky').innerHTML=o})();
 
 const th=()=>{$('#th').textContent=document.documentElement.dataset.theme=='light'?'切換為夜間':'切換為日間'};
 $('#th').onclick=()=>{const t=document.documentElement.dataset.theme=='light'?'dark':'light';document.documentElement.dataset.theme=t;W('mpt',t);th()};th();
+
+// 強制刷新歷史快取中的名單班底
+if(cur() && (!cur().att || cur().att.length <= 2)){
+  cur().att = defaultAttendees();
+  syncAttToRcpt();
+  save();
+}
+
 load();
 </script>
 </body>
