@@ -557,9 +557,10 @@ ${m.tx}
     return;
   }
 
-  try{
+ try{
     const response=await fetch(GAS_WEBHOOK_URL,{
       method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify({
         action:'generate_minutes',
         title:m.title||'（未填）',
@@ -577,8 +578,9 @@ ${m.tx}
       throw new Error(result.message||'雲端處理失敗');
     }
   }catch(e){
-    toast('後台處理異常，請確認 GAS 部署是否設為 Anyone');
-  }
+    console.error(e);
+    toast('處理異常：'+e.message);
+  }  }
   b.disabled=false;b.textContent='整理並產出會議紀錄';
 };
 
