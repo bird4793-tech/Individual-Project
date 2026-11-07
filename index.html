@@ -155,8 +155,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   </section>
   <section>
     <h2>出席者</h2>
-    
-    <!-- 常用名冊快速點選 -->
     <div class="preset-box">
       <div class="bar">
         <label style="margin:0">常用名冊快速點選：</label>
@@ -164,8 +162,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       </div>
       <div class="preset-chips" id="presetChips"></div>
     </div>
-
-    <!-- 手動補登 -->
     <div class="row">
       <div><input id="an" placeholder="姓名"></div>
       <div><input id="ae" type="email" placeholder="電子郵件"></div>
@@ -176,7 +172,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       <button class="domain-btn" type="button" onclick="appendDomain('@hotmail.com')">@hotmail.com</button>
       <button class="domain-btn" type="button" onclick="appendDomain('@outlook.com')">@outlook.com</button>
     </div>
-
     <div class="bar" style="margin-top:20px">
       <label style="margin:0">當前名冊：</label>
       <span class="acts">
@@ -185,7 +180,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       </span>
     </div>
     <div class="chips" id="chips"></div>
-
     <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入出席者信箱</button><button class="lk" id="clr">清空</button></span></div>
     <textarea id="rc" rows="3"></textarea>
     <button class="btn" id="inv" style="margin-top:18px">發送行事曆邀請通知</button>
@@ -225,7 +219,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <script>
 const GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
 
-// 常用幽默名冊
 const presetPool = [
   { n: '隔壁部門偷吃零食的小美', e: 'snack.mei@hotmail.com' },
   { n: '路過被抓進來的倒楣工讀生', e: 'parttime@outlook.com' },
@@ -261,13 +254,12 @@ function nm(){
   };
 }
 
-// 升級快取鍵值到 mp3，徹底清掉舊版「出席者 1」殘留
-let S=L('mp3',null);
+let S=L('mp4',null);
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
 if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
 const st=m=>new Date(m.time).getTime(),en=m=>st(m)+m.dur*6e4;
-const save=()=>W('mp3',S);
+const save=()=>W('mp4',S);
 let recording=false,rec=null,committed='';
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3000)}
@@ -289,7 +281,6 @@ function renderPresetChips(){
 
 function chips(){
   const m=cur();
-  // 嚴格判定：只有 c 為 true 的才算已確認出席
   const confirmedCount=m.att.filter(a=>a.c===true).length;
   if(!m.att.length){
     $('#chips').innerHTML='<span style="border:none;color:var(--dim);font-size:13px;padding:0">名冊為空，請點選上方常用名冊或手動加入</span>';
@@ -426,7 +417,7 @@ $('#inv').onclick=async()=>{
     await fetch(GAS_WEBHOOK_URL,{
       method:'POST',
       mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify({
         emails:to,
         title:`【行事曆邀請】${m.title||'會議'}`,
@@ -557,7 +548,7 @@ ${m.tx}
     return;
   }
 
- try{
+  try{
     const response=await fetch(GAS_WEBHOOK_URL,{
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -580,7 +571,7 @@ ${m.tx}
   }catch(e){
     console.error(e);
     toast('處理異常：'+e.message);
-  }  }
+  }
   b.disabled=false;b.textContent='整理並產出會議紀錄';
 };
 
@@ -594,7 +585,7 @@ $('#snd').onclick=async()=>{
     await fetch(GAS_WEBHOOK_URL,{
       method:'POST',
       mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify({
         emails:to,
         title:`【會議紀錄】${m.title||'會議'}`,
@@ -624,6 +615,7 @@ x+=w+(R()*8|0)}$('#sky').innerHTML=o})();
 
 const th=()=>{$('#th').textContent=document.documentElement.dataset.theme=='light'?'切換為夜間':'切換為日間'};
 $('#th').onclick=()=>{const t=document.documentElement.dataset.theme=='light'?'dark':'light';document.documentElement.dataset.theme=t;W('mpt',t);th()};th();
+
 load();
 </script>
 </body>
