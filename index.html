@@ -8,7 +8,7 @@
     :root {
       --bg: #0f1115;
       --card: #181b21;
-      --border: rgba(255, 255, 255, 0.08);
+      --card-border: rgba(255, 255, 255, 0.08);
       --text: #e6edf3;
       --muted: #8b949e;
       --accent: #d99b43;
@@ -19,48 +19,51 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 30px 15px;
+      padding: 30px;
     }
-    .container {
-      width: 100%;
-      max-width: 1100px;
+    .main-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
+      grid-template-columns: 320px 1fr 1fr;
+      gap: 24px;
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      align-items: start;
     }
-    @media (max-width: 850px) {
-      .container { grid-template-columns: 1fr; }
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
     }
     .panel {
       background: var(--card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 20px;
     }
-    h2 {
-      font-size: 1.25rem;
-      font-weight: 500;
-      color: #fff;
+    .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+    }
     .field-group { display: flex; flex-direction: column; gap: 8px; }
     label { font-size: 0.85rem; color: var(--muted); }
     input, textarea, select {
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--border);
+      background: #0d1015;
+      border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 10px 12px;
-      border-radius: 6px;
+      padding: 10px 14px;
+      border-radius: 8px;
       font-size: 0.95rem;
       width: 100%;
       outline: none;
@@ -69,87 +72,134 @@
     input:focus, textarea:focus, select:focus {
       border-color: var(--accent);
     }
-    textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+    textarea {
+      resize: vertical;
+      min-height: 280px;
+      line-height: 1.6;
+    }
     .btn {
       background: var(--accent);
       color: #121212;
       border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
+      border-radius: 8px;
+      padding: 12px 18px;
       font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
     }
     .btn:hover { background: var(--accent-hover); }
     .btn-subtle {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.06);
       color: var(--text);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: normal;
     }
-    .btn-subtle:hover { background: rgba(255, 255, 255, 0.1); }
-    .btn-danger { background: transparent; color: var(--danger); font-size: 0.85rem; padding: 4px 8px; }
-    .btn-danger:hover { background: rgba(207, 73, 73, 0.1); }
+    .btn-subtle:hover { background: rgba(255, 255, 255, 0.12); }
+    .btn-danger-text {
+      background: transparent;
+      color: var(--danger);
+      border: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .btn-danger-text:hover { text-decoration: underline; }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
     .tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .tag {
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      padding: 4px 8px;
-      border-radius: 4px;
+      border: 1px solid var(--card-border);
+      padding: 4px 10px;
+      border-radius: 6px;
       font-size: 0.8rem;
       cursor: pointer;
     }
     .tag:hover { border-color: var(--accent); }
-    .select-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    .rec-ctrl {
+      display: flex;
+      align-items: center;
       gap: 16px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
     }
+    .rec-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #252830;
+      border: 2px solid var(--card-border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .rec-btn .dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      transition: all 0.2s;
+    }
+    .rec-btn.recording .dot {
+      background: var(--danger);
+      transform: scale(1.15);
+    }
+    .rec-status { display: flex; flex-direction: column; gap: 4px; }
+    .rec-status-title { font-weight: 600; font-size: 0.95rem; }
+    .rec-status-desc { font-size: 0.8rem; color: var(--muted); }
     .sendrow {
       display: flex;
       gap: 10px;
-      margin-top: 10px;
     }
     #toast {
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background: #252830;
+      background: #232730;
       color: #fff;
-      border: 1px solid var(--border);
-      padding: 10px 20px;
+      border: 1px solid var(--card-border);
+      padding: 10px 22px;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
       font-size: 0.9rem;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s;
-      z-index: 1000;
+      z-index: 9999;
     }
     #toast.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- 左側：會議準備與名單 -->
+  <div class="main-grid">
+    <!-- 左欄：準備與出席者 -->
     <section class="panel">
-      <h2>
-        <span>準備</span>
-        <button type="button" class="btn btn-danger" onclick="resetForm()">刪除此會議</button>
-      </h2>
+      <div class="panel-header">
+        <h2>準備</h2>
+        <button type="button" class="btn-danger-text" onclick="resetForm()">刪除此會議</button>
+      </div>
 
       <div class="field-group">
         <label for="topic">會議主題</label>
         <input type="text" id="topic" placeholder="這場會議要討論什麼？">
       </div>
 
-      <div class="select-row">
+      <div class="row-2">
         <div class="field-group">
           <label for="time">時間</label>
           <input type="datetime-local" id="time">
@@ -160,24 +210,27 @@
         </div>
       </div>
 
-      <hr style="border:0; border-top:1px solid var(--border);">
+      <hr style="border:0; border-top:1px solid var(--card-border);">
 
-      <h2>出席者</h2>
+      <div class="panel-header">
+        <h2>出席者</h2>
+      </div>
+
       <div class="field-group">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <label>常用名冊快速點選：</label>
           <span style="font-size:0.8rem; color:var(--muted); cursor:pointer;" onclick="addAllEmails()">全部加入</span>
         </div>
-        <div class="tags" id="emailPresets">
+        <div class="tags">
           <span class="tag" onclick="appendEmail('@gmail.com')">@gmail.com</span>
           <span class="tag" onclick="appendEmail('@hotmail.com')">@hotmail.com</span>
           <span class="tag" onclick="appendEmail('@outlook.com')">@outlook.com</span>
         </div>
       </div>
 
-      <div style="display:flex; gap:10px;">
+      <div style="display:flex; gap:8px;">
         <input type="text" id="pName" placeholder="姓名" style="flex:1;">
-        <input type="email" id="pEmail" placeholder="電子郵件" style="flex:1.5;">
+        <input type="email" id="pEmail" placeholder="電子郵件" style="flex:1.4;">
         <button type="button" class="btn btn-subtle" onclick="addParticipant()">加入</button>
       </div>
 
@@ -190,18 +243,28 @@
       </div>
     </section>
 
-    <!-- 右側：收音與審閱 -->
+    <!-- 中欄：收音與逐字稿 -->
     <section class="panel">
-      <h2>
-        <span>收音</span>
+      <div class="panel-header">
+        <h2>收音</h2>
         <button type="button" class="btn btn-subtle" onclick="$('#tr').value=''; save(); toast('逐字稿已清除');">清除內容</button>
-      </h2>
+      </div>
+
+      <div class="rec-ctrl">
+        <div class="rec-btn" id="recBtn" onclick="toggleRecording()">
+          <div class="dot"></div>
+        </div>
+        <div class="rec-status">
+          <span class="rec-status-title" id="recStatusTitle">待命中</span>
+          <span class="rec-status-desc" id="recStatusDesc">按下圓鈕開始講話，文字會即時出現在下方</span>
+        </div>
+      </div>
 
       <div class="field-group">
         <textarea id="tr" placeholder="逐字稿內容會即時出現在這裡，也可直接貼上文字..."></textarea>
       </div>
 
-      <div class="select-row">
+      <div class="row-2">
         <div class="field-group">
           <label for="inLang">收音語言</label>
           <select id="inLang">
@@ -220,24 +283,25 @@
         </div>
       </div>
 
-      <button type="button" class="btn" id="genBtn" onclick="generateSummary()" style="width:100%; margin-top:10px;">
+      <button type="button" class="btn" id="genBtn" onclick="generateSummary()">
         整理並產出會議紀錄
       </button>
+    </section>
 
-      <hr style="border:0; border-top:1px solid var(--border); margin: 8px 0;">
-
-      <h2>
-        <span>審閱與寄送</span>
-      </h2>
+    <!-- 右欄：審閱與寄送 -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>審閱與寄送</h2>
+      </div>
 
       <div class="field-group">
-        <textarea id="mn" placeholder="整理好的內容會出現在這裡，可以直接修改。"></textarea>
+        <textarea id="mn" placeholder="整理好的內容會出現在這裡，可以直接修改。" style="min-height: 420px;"></textarea>
       </div>
 
       <div class="sendrow">
         <button type="button" class="btn" id="snd" onclick="sendMinutes()" style="flex:1;">寄送會議紀錄</button>
-        <button type="button" class="btn btn-subtle" id="cp" onclick="copyMinutes()" style="flex:0 0 130px;">複製全文</button>
-        <button type="button" class="btn btn-subtle" id="clr" onclick="clearMinutes()" style="flex:0 0 100px;">清除內容</button>
+        <button type="button" class="btn btn-subtle" id="cp" onclick="copyMinutes()" style="flex:0 0 110px;">複製全文</button>
+        <button type="button" class="btn btn-subtle" id="clr" onclick="clearMinutes()" style="flex:0 0 90px;">清除內容</button>
       </div>
     </section>
   </div>
@@ -249,6 +313,8 @@
 
     const $ = s => document.querySelector(s);
     let participants = [];
+    let recognition = null;
+    let isRecording = false;
 
     function toast(msg) {
       const t = $('#toast');
@@ -306,6 +372,49 @@
       const val = $('#mn').value;
       if (!val) return toast('沒有內容可供複製');
       navigator.clipboard.writeText(val).then(() => toast('全文已複製到剪貼簿'));
+    }
+
+    // 語音辨識
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return null;
+      const sr = new SpeechRecognition();
+      sr.continuous = true;
+      sr.interimResults = true;
+      sr.onresult = (e) => {
+        let transcript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            $('#tr').value += e.results[i][0].transcript + ' ';
+            save();
+          }
+        }
+      };
+      sr.onerror = () => toggleRecording(false);
+      sr.onend = () => { if (isRecording) sr.start(); };
+      return sr;
+    }
+
+    function toggleRecording(forceState) {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        return alert('您的瀏覽器不支援即時語音收音功能，請直接貼上文字。');
+      }
+      if (!recognition) recognition = initSpeechRecognition();
+
+      isRecording = typeof forceState === 'boolean' ? forceState : !isRecording;
+      const btn = $('#recBtn');
+      if (isRecording) {
+        recognition.lang = $('#inLang').value;
+        recognition.start();
+        btn.classList.add('recording');
+        $('#recStatusTitle').innerText = '收音中...';
+        $('#recStatusDesc').innerText = '正在即時辨識語音內容';
+      } else {
+        recognition.stop();
+        btn.classList.remove('recording');
+        $('#recStatusTitle').innerText = '待命中';
+        $('#recStatusDesc').innerText = '按下圓鈕開始講話，文字會即時出現在下方';
+      }
     }
 
     async function generateSummary() {
