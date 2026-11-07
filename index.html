@@ -247,58 +247,68 @@ $('#rb').onclick=()=>{
   try{rec.start();setSt(true,'收音中','再按一次圓鈕停止')}catch(e){toast('無法啟動收音')}};
 $('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';save()};
 
-// GAS 專用通訊通道：用純文字直接通訊，完全免除 CORS 錯誤
-async function postToGAS(payload) {
-  const formBody = JSON.stringify(payload);
-  const resp = await fetch(GAS_URL, {
-    method: 'POST',
-    body: formBody
+// JSONP 通訊函式：原生動態載入 script，不受 CORS 與 fetch 重導向阻擋
+function callGASWithJSONP(params, timeoutMs = 60000) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'gas_cb_' + Date.now();
+    const script = document.createElement('script');
+    
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('連線逾時，後台處理時間過長'));
+    }, timeoutMs);
+
+    function cleanup() {
+      clearTimeout(timer);
+      if (script.parentNode) script.parentNode.removeChild(script);
+      delete window[cbName];
+    }
+
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      reject(new Error('無法連線到 Google Apps Script 後台'));
+    };
+
+    const query = new URLSearchParams({ ...params, callback: cbName }).toString();
+    script.src = `${GAS_URL}?${query}`;
+    document.body.appendChild(script);
   });
-  return await resp.json();
 }
 
-$('#gen').onclick=async()=>{
-  const m=cur(),b=$('#gen');
-  if(!m.tx.trim())return toast('還沒有討論內容，請先收音或貼上文字');
+$('#gen').onclick = async () => {
+  const m = cur(), b = $('#gen');
+  if (!m.tx.trim()) return toast('還沒有討論內容，請先收音或貼上文字');
+
+  const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${m.att.map(a => a.n).join('、') || '（未填）'}\n\n逐字稿：\n${m.tx}`;
   
-  const p=`請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。只根據逐字稿，不要編造內容。\n\n主題：${m.title||'（未填）'}\n時間：${tf(m.time)}\n出席：${m.att.map(a=>a.n).join('、')||'（未填）'}\n\n逐字稿：\n${m.tx}`;
-  b.disabled=true;b.textContent='整理中…';
-  
-  try{
-    const j = await postToGAS({
+  b.disabled = true;
+  b.textContent = '整理中…';
+
+  try {
+    const j = await callGASWithJSONP({
       action: 'generate',
       transcript: p,
       targetLang: $('#l2').value
     });
-    
-    if(j.status==='success' && j.summary){
-      m.min=j.summary;
-      $('#mn').value=m.min;
+
+    if (j.status === 'success' && j.summary) {
+      m.min = j.summary;
+      $('#mn').value = m.min;
       save();
       toast('會議紀錄已產出，請審閱後寄送');
-    }else{
+    } else {
       throw new Error(j.message || '產出失敗');
     }
-  }catch(e){
-    // 若 fetch 依然被瀏覽器外掛或安全性阻擋，自動切換降級備用通道
-    toast('整理中，請稍候片刻…');
-    try {
-      const fallbackRes = await fetch(GAS_URL + '?action=generate&targetLang=' + encodeURIComponent($('#l2').value) + '&transcript=' + encodeURIComponent(p));
-      const fj = await fallbackRes.json();
-      if(fj.status==='success' && fj.summary){
-        m.min=fj.summary;
-        $('#mn').value=m.min;
-        save();
-        toast('會議紀錄已產出');
-      } else {
-        throw new Error(fj.message || '產出異常');
-      }
-    } catch(err2) {
-      toast('產出失敗：連線逾時或遭瀏覽器阻擋');
-    }
+  } catch (e) {
+    toast('產出失敗：' + e.message);
   } finally {
-    b.disabled=false;
-    b.textContent='整理並產出會議紀錄';
+    b.disabled = false;
+    b.textContent = '整理並產出會議紀錄';
   }
 };
 
