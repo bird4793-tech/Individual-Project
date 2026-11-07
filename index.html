@@ -536,11 +536,14 @@ ${m.tx}
         contents:[{parts:[{text:prompt}]}],
         generationConfig:{
           temperature:0.2,
-          maxOutputTokens:4000
+          maxOutputTokens:4000,
+          thinkingConfig:{
+            thinkingBudget:0
+          }
         }
       })
     });
-      const data=await res.json();
+  const data=await res.json();
       if(data.candidates&&data.candidates[0].content&&data.candidates[0].content.parts[0].text){
         m.min=data.candidates[0].content.parts[0].text;
         $('#mn').value=m.min;save();toast('會議紀錄已產出');
