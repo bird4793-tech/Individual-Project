@@ -207,8 +207,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   <section>
     <div class="bar"><h2>審閱與寄送</h2><span class="lb" style="margin:0 0 20px" id="who"></span></div>
     <textarea id="mn" placeholder="按下「整理並產出會議紀錄」後，整理好的內容會出現在這裡，可以直接修改。"></textarea>
-    <div class="sendrow"><button class="btn" id="snd">寄送會議紀錄</button><button class="btn" id="cp" style="flex:0 0 130px">複製全文</button></div>
-  </section>
+    <div class="sendrow"><button class="btn" id="snd">寄送會議紀錄</button><button class="btn" id="cp" style="flex:0 0 130px">複製全文</button><button class="btn" id="clr" type="button" onclick="$('#mn').value=''; m.min=''; save(); toast('內容已清除');" style="flex:0 0 100px; background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2);">清除內容</button></div>
 </div>
 </div>
 </div>
