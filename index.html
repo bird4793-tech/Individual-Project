@@ -58,14 +58,19 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .mi small{font-size:14px;white-space:nowrap}
 .cf{margin-left:8px;color:var(--warn);font-weight:400;font-size:13px;border:1px solid var(--warn);border-radius:3px;padding:0 5px}
 
+.preset-box{margin-bottom:14px}
+.preset-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.preset-btn{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:3px 10px;font-size:12.5px;color:var(--dim);cursor:pointer;transition:.2s}
+.preset-btn:hover{border-color:var(--amber);color:var(--amber)}
+
 .domain-chips{display:flex;gap:8px;margin-top:8px}
 .domain-btn{border:1px solid var(--line2);background:transparent;border-radius:6px;padding:2px 8px;font-size:12px;color:var(--dim);cursor:pointer;transition:.2s}
 .domain-btn:hover{border-color:var(--amber);color:var(--amber)}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
-.chips span{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:999px;padding:2px 6px 2px 10px;font-size:14px;cursor:pointer;user-select:none;transition:.2s}
+.chips span{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:999px;padding:3px 8px 3px 10px;font-size:13.5px;cursor:pointer;user-select:none;transition:.2s}
 .chips span.confirmed{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 15%,transparent);color:var(--ink)}
-.chips span.unconfirmed{opacity:0.45;border-style:dashed}
+.chips span.unconfirmed{opacity:0.4;border-style:dashed}
 .chips span .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--amber)}
 .chips span.unconfirmed .status-dot{background:var(--dim)}
 .chips i{font-style:normal;cursor:pointer;color:var(--dim);padding:0 6px;margin-left:4px}
@@ -149,7 +154,18 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
   </section>
   <section>
-    <div class="bar"><h2>出席者</h2><span class="acts"><button class="lk" id="add-all-presets">常用名冊全部加入</button></span></div>
+    <h2>出席者</h2>
+    
+    <!-- 常用名冊快速點選 -->
+    <div class="preset-box">
+      <div class="bar">
+        <label style="margin:0">常用名冊快速點選：</label>
+        <button class="lk" id="add-all-presets">全部加入</button>
+      </div>
+      <div class="preset-chips" id="presetChips"></div>
+    </div>
+
+    <!-- 手動補登 -->
     <div class="row">
       <div><input id="an" placeholder="姓名"></div>
       <div><input id="ae" type="email" placeholder="電子郵件"></div>
@@ -160,7 +176,16 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       <button class="domain-btn" type="button" onclick="appendDomain('@hotmail.com')">@hotmail.com</button>
       <button class="domain-btn" type="button" onclick="appendDomain('@outlook.com')">@outlook.com</button>
     </div>
+
+    <div class="bar" style="margin-top:20px">
+      <label style="margin:0">當前名冊（點擊切換出席狀態）：</label>
+      <span class="acts">
+        <button class="lk" id="toggle-all">全體出席</button>
+        <button class="lk" id="clear-att">清空名冊</button>
+      </span>
+    </div>
     <div class="chips" id="chips"></div>
+
     <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入出席者信箱</button><button class="lk" id="clr">清空</button></span></div>
     <textarea id="rc" rows="3"></textarea>
     <button class="btn" id="inv" style="margin-top:18px">發送行事曆邀請通知</button>
@@ -200,6 +225,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <script>
 const GAS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw__-GZD8duMmSr1UQ_pD9YFd2ws4MqG09rJilv25xB7wgXNn3XQ_vr_aP2cLUdtaZ29g/exec';
 
+// 常用幽默名冊
 const presetPool = [
   { n: '隔壁部門偷吃零食的小美', e: 'snack.mei@hotmail.com' },
   { n: '路過被抓進來的倒楣工讀生', e: 'parttime@outlook.com' },
@@ -226,7 +252,7 @@ function nm(){
     time:lt(d),
     dur:30,
     att:[
-      {n:'隔壁部門偷吃零食的小美',e:'snack.mei@hotmail.com',c:true},
+      {n:'隔壁部門偷吃零食的小美',e:'snack.mei@hotmail.com',c:false},
       {n:'路過被抓進來的倒楣工讀生',e:'parttime@outlook.com',c:false}
     ],
     rcpt:'',
@@ -235,30 +261,61 @@ function nm(){
   };
 }
 
-let S=L('mp2',null);
+// 升級快取鍵值到 mp3，徹底清掉舊版「出席者 1」殘留
+let S=L('mp3',null);
 if(!S||!S.ms||!S.ms.length)S={cur:null,ms:[nm()]};
 if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
 const st=m=>new Date(m.time).getTime(),en=m=>st(m)+m.dur*6e4;
-const save=()=>W('mp2',S);
+const save=()=>W('mp3',S);
 let recording=false,rec=null,committed='';
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3000)}
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
 function rl(){const c=conflicts();$('#list').innerHTML=[...S.ms].sort((a,b)=>st(a)-st(b)).map(m=>`<div class="mi${m.id==S.cur?' on':''}" data-id="${m.id}"><span>${esc(m.title||'未命名會議')}</span><small>${tf(m.time)}${c.has(m.id)?'<b class="cf">衝突</b>':''}</small></div>`).join('')}
 
-function chips(){
-  const m=cur();
-  const confirmedCount=m.att.filter(a=>a.c!==false).length;
-  $('#chips').innerHTML=m.att.map((a,i)=>`
-    <span class="${a.c!==false?'confirmed':'unconfirmed'}" data-toggle="${i}" title="點擊切換出席狀態">
-      <i class="status-dot"></i>${esc(a.n)}<i data-i="${i}" title="移除">×</i>
-    </span>
+function renderPresetChips(){
+  const m=cur(),ce=m.att.map(a=>a.e.toLowerCase());
+  const pool=presetPool.filter(p=>!ce.includes(p.e.toLowerCase()));
+  const el=$('#presetChips');
+  if(!pool.length){
+    el.innerHTML='<span style="font-size:12.5px;color:var(--dim)">常用名冊成員皆已加入</span>';
+    return;
+  }
+  el.innerHTML=pool.map(p=>`
+    <button class="preset-btn" type="button" onclick="addOnePreset('${esc(p.n)}','${esc(p.e)}')">+ ${esc(p.n)}</button>
   `).join('');
-  $('#who').textContent='發送對象：全體出席人員'+(confirmedCount?`（${confirmedCount}）`:'（0）');
 }
 
-function load(){const m=cur();$('#ti').value=m.title;$('#tm').value=m.time;$('#du').value=m.dur;$('#rc').value=m.rcpt;$('#tx').value=m.tx;$('#mn').value=m.min;rl();chips();tick()}
+function chips(){
+  const m=cur();
+  // 嚴格判定：只有 c 為 true 的才算已確認出席
+  const confirmedCount=m.att.filter(a=>a.c===true).length;
+  if(!m.att.length){
+    $('#chips').innerHTML='<span style="border:none;color:var(--dim);font-size:13px;padding:0">名冊為空，請點選上方常用名冊或手動加入</span>';
+  }else{
+    $('#chips').innerHTML=m.att.map((a,i)=>`
+      <span class="${a.c===true?'confirmed':'unconfirmed'}" data-toggle="${i}" title="點擊切換出席狀態">
+        <i class="status-dot"></i>${esc(a.n)}<i data-i="${i}" title="移除">×</i>
+      </span>
+    `).join('');
+  }
+  $('#who').textContent='發送對象：全體出席人員'+(confirmedCount?`（${confirmedCount}）`:'（0）');
+  renderPresetChips();
+}
+
+function load(){
+  const m=cur();
+  $('#ti').value=m.title;
+  $('#tm').value=m.time;
+  $('#du').value=m.dur;
+  $('#rc').value=m.rcpt;
+  $('#tx').value=m.tx;
+  $('#mn').value=m.min;
+  rl();
+  chips();
+  tick();
+}
 
 function tick(){
   const n=Date.now(),up=S.ms.filter(m=>!isNaN(st(m))&&en(m)>n).sort((a,b)=>st(a)-st(b))[0];
@@ -291,9 +348,22 @@ function appendDomain(domain){
   el.focus();
 }
 
-$('#aa').onclick=()=>{const e=$('#ae').value.trim();if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
-  const m=cur();if(m.att.some(a=>a.e.toLowerCase()==e.toLowerCase()))return toast('這個信箱已經在名單中');
-  m.att.push({n:$('#an').value.trim()||e.split('@')[0],e,c:true});$('#an').value=$('#ae').value='';save();chips()};
+function addOnePreset(n,e){
+  const m=cur();
+  if(m.att.some(a=>a.e.toLowerCase()==e.toLowerCase()))return;
+  m.att.push({n,e,c:true});
+  save();chips();
+}
+
+$('#aa').onclick=()=>{
+  const e=$('#ae').value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(e))return toast('請輸入有效的電子郵件');
+  const m=cur();
+  if(m.att.some(a=>a.e.toLowerCase()==e.toLowerCase()))return toast('這個信箱已經在名單中');
+  m.att.push({n:$('#an').value.trim()||e.split('@')[0],e,c:true});
+  $('#an').value=$('#ae').value='';
+  save();chips();
+};
 
 $('#chips').onclick=e=>{
   const delIdx=e.target.dataset.i;
@@ -307,7 +377,7 @@ $('#chips').onclick=e=>{
   if(toggleEl){
     const idx=+toggleEl.dataset.toggle;
     const m=cur();
-    m.att[idx].c=(m.att[idx].c===false);
+    m.att[idx].c = !(m.att[idx].c===true);
     save();chips();
   }
 };
@@ -322,9 +392,20 @@ $('#add-all-presets').onclick=()=>{
   save();chips();toast('已加入常用名冊成員');
 };
 
+$('#toggle-all').onclick=()=>{
+  const m=cur();
+  m.att.forEach(a=>a.c=true);
+  save();chips();toast('已將名冊全員設為出席');
+};
+
+$('#clear-att').onclick=()=>{
+  cur().att=[];
+  save();chips();toast('已清空當前名冊');
+};
+
 $('#fill').onclick=()=>{
   const m=cur();
-  const confirmedAtt=m.att.filter(a=>a.c!==false);
+  const confirmedAtt=m.att.filter(a=>a.c===true);
   if(!confirmedAtt.length)return toast('目前沒有已出席的人員');
   m.rcpt=confirmedAtt.map(a=>a.e).join(', ');$('#rc').value=m.rcpt;save();
 };
@@ -332,7 +413,7 @@ $('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';save()};
 
 const getConfirmedMails=()=>{
   const m=cur();
-  const confirmedAttMails=m.att.filter(a=>a.c!==false).map(a=>a.e);
+  const confirmedAttMails=m.att.filter(a=>a.c===true).map(a=>a.e);
   const rcptMails=cur().rcpt.split(/[,;\s]+/).filter(Boolean);
   return [...new Set([...confirmedAttMails,...rcptMails])];
 };
@@ -436,7 +517,7 @@ $('#gen').onclick=async()=>{
   const m=cur(),k=$('#key').value.trim(),b=$('#gen');
   if(!m.tx.trim())return toast('還沒有討論內容，請先收音或貼上文字');
   const targetLang=$('#l2').value;
-  const presentList=m.att.filter(a=>a.c!==false).map(a=>`${a.n} <${a.e}>`).join('、')||'（未填）';
+  const presentList=m.att.filter(a=>a.c===true).map(a=>`${a.n} <${a.e}>`).join('、')||'（未填）';
 
   b.disabled=true;b.textContent='整理中…';
 
