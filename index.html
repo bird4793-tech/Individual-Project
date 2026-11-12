@@ -140,18 +140,18 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 <div class="grid">
 <div>
   <section>
-    <h2>準備</h2>
+    <h2>案發現場設定</h2>
     <div id="list"></div>
     <div class="bar"><button class="lk" id="add">＋ 新增會議</button><button class="lk" id="del">刪除此會議</button></div>
     <label for="ti">會議主題</label>
-    <input id="ti" placeholder="這場會議要討論什麼？">
+    <input id="ti" placeholder="今天又要討論什麼沒結論的事？">
     <div class="row">
       <div><label for="tm">時間</label><input id="tm" type="datetime-local"></div>
       <div class="sm"><label for="du">長度（分）</label><input id="du" type="number" min="5" step="5"></div>
     </div>
   </section>
   <section>
-    <h2>出席者</h2>
+    <h2>潛在背鍋名單</h2>
     <div class="row">
       <div><input id="an" placeholder="姓名"></div>
       <div><input id="ae" type="email" placeholder="電子郵件"></div>
@@ -171,7 +171,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 
 <div>
   <section>
-    <h2>收音</h2>
+    <h2>蒐證與側錄</h2>
     <div class="rec">
       <button class="rb" id="rb" aria-label="開始或停止收音"><i></i></button>
       <div><b id="stt">待命中</b><small id="sth">按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔</small></div>
@@ -196,6 +196,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
         <select id="l1">
           <option value="auto" selected>自動偵測 (Auto)</option>
           <option value="zh-TW">正體中文</option>
+          <option value="nan-TW">台語 (閩南語 / 諧音辨識)</option>
           <option value="zh-HK">廣東話 (粵語)</option>
           <option value="en-US">English</option>
           <option value="ja-JP">日本語</option>
@@ -210,6 +211,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
         <label for="l2" style="margin-top:0">紀錄語言</label>
         <select id="l2">
           <option selected>正體中文（標準）</option>
+          <option>台語（道地台語漢字口吻）</option>
           <option>廣東話</option>
           <option>日本語</option>
           <option>English</option>
@@ -225,7 +227,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
   </section>
   <section>
     <div class="bar">
-      <h2>審閱與寄送</h2>
+      <h2>分鍋與昭告天下</h2>
       <div class="acts" style="margin-bottom:20px">
         <span class="lb" style="margin:0" id="who">發送對象：0 人</span>
         <button class="lk" id="cmn">清除內容</button>
@@ -536,13 +538,13 @@ $('#rb').onclick=async ()=>{
           autoGainControl: true
         } 
       });
-      
+
       let recTargetStream = mStream;
       try {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioCtx.createMediaStreamSource(mStream);
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 6.0; // 增益放大調至最大 6 倍
+        gainNode.gain.value = 2.0; // 穩定 2 倍增益放大
         const destination = audioCtx.createMediaStreamDestination();
         source.connect(gainNode);
         gainNode.connect(destination);
@@ -580,7 +582,7 @@ $('#rb').onclick=async ()=>{
   
   rec = new SR();
   const selLang = $('#l1').value;
-  rec.lang = selLang === 'auto' ? (navigator.language || 'zh-TW') : selLang;
+  rec.lang = selLang === 'auto' ? (navigator.language || 'zh-TW') : (selLang === 'nan-TW' ? 'zh-TW' : selLang);
   rec.continuous = true;
   rec.interimResults = true;
   committed = $('#tx').value;
@@ -627,7 +629,7 @@ $('#rb').onclick=async ()=>{
   try{
     rec.start();
     startRecTimer();
-    setSt(true,'收音中（6倍最大增益放大＋同步錄音）','再按一次圓鈕停止收音並生成音檔');
+    setSt(true,'收音中','再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     stopEvidenceRec();
     toast('無法啟動麥克風收音');
@@ -649,7 +651,7 @@ $('#gen').onclick = async () => {
 
   const selectedNames = (m.att || []).filter(a => a.selected).map(a => a.n).join('、');
 
-  const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${selectedNames || '（未填）'}\n\n逐字稿：\n${m.tx}`;
+  const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。\n注意：逐字稿為語音辨識產生，若其中包含「台語（閩南語）或台灣國語的同音諧音字」（例如：哩賀=你好、安捏=這樣、母湯=不行、拍謝=抱歉、衝啥=做什麼、阿捏、齁、啦等），請自動根據上下文語意精準還原其真實意思；若輸出語言選擇「台語（道地台語漢字口吻）」，請用道地傳神的台語漢字與職場口氣撰寫。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${selectedNames || '（未填）'}\n\n逐字稿：\n${m.tx}`;
   
   b.disabled = true;
   b.textContent = '整理中…';
