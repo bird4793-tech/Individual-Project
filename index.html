@@ -182,7 +182,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <div class="rec-meta">
       <span>收音時長：<b id="rtm">00:00</b></span>
-      <span>逐字稿字數：<b id="wct">0</b> 字（自動附帶時間戳記）</span>
+      <span>逐字稿字數：<b id="wct">0</b> 字（點擊 <b style="color:var(--amber)">[分:秒]</b> 可跳轉播放原音）</span>
     </div>
     <div class="evid" id="evid">
       <audio id="aud" controls></audio>
@@ -410,6 +410,35 @@ $('#du').oninput=e=>{cur().dur=Math.max(5,+e.target.value||30);save();rl();tick(
 $('#rc').oninput=e=>{cur().rcpt=e.target.value;save();updateRecipientCount()};
 $('#tx').oninput=e=>{cur().tx=e.target.value;updateWordCount();save()};
 $('#mn').oninput=e=>{cur().min=e.target.value;save()};
+
+// 點擊逐字稿行首的 [分:秒] 時間戳記（或雙擊該行），自動跳轉播放對應秒數原音
+function jumpToLineAudio(e){
+  const aud = $('#aud');
+  if(!audioUrl || !aud || !aud.src) return;
+  const ta = e.target;
+  // 若使用者正在拖曳反白選取文字，不觸發跳播
+  if(ta.selectionStart !== ta.selectionEnd && e.type === 'click') return;
+  const pos = ta.selectionStart;
+  const text = ta.value;
+  const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+  let lineEnd = text.indexOf('\n', pos);
+  if(lineEnd === -1) lineEnd = text.length;
+  const line = text.slice(lineStart, lineEnd);
+  const match = line.match(/^\[(?:(\d+):)?(\d{2}):(\d{2})\]/);
+  if(!match) return;
+  const offsetInLine = pos - lineStart;
+  // 單擊時：必須點擊在 [00:00] 標記範圍內才觸發（避免干擾後方文字編輯）；雙擊時：整行皆可觸發
+  if(e.type === 'click' && offsetInLine > match[0].length + 1) return;
+  const h = match[1] ? parseInt(match[1], 10) : 0;
+  const m = parseInt(match[2], 10);
+  const s = parseInt(match[3], 10);
+  const targetSec = h * 3600 + m * 60 + s;
+  aud.currentTime = targetSec;
+  aud.play().catch(()=>{});
+  toast(`已跳轉至 ${match[0]} 播放原音鐵證`);
+}
+$('#tx').addEventListener('click', jumpToLineAudio);
+$('#tx').addEventListener('dblclick', jumpToLineAudio);
 
 // 網域快選
 $All('.qd').forEach(btn => {
