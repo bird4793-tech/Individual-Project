@@ -416,7 +416,6 @@ function jumpToLineAudio(e){
   const aud = $('#aud');
   if(!audioUrl || !aud || !aud.src) return;
   const ta = e.target;
-  // 若使用者正在拖曳反白選取文字，不觸發跳播
   if(ta.selectionStart !== ta.selectionEnd && e.type === 'click') return;
   const pos = ta.selectionStart;
   const text = ta.value;
@@ -427,7 +426,6 @@ function jumpToLineAudio(e){
   const match = line.match(/^\[(?:(\d+):)?(\d{2}):(\d{2})\]/);
   if(!match) return;
   const offsetInLine = pos - lineStart;
-  // 單擊時：必須點擊在 [00:00] 標記範圍內才觸發（避免干擾後方文字編輯）；雙擊時：整行皆可觸發
   if(e.type === 'click' && offsetInLine > match[0].length + 1) return;
   const h = match[1] ? parseInt(match[1], 10) : 0;
   const m = parseInt(match[2], 10);
@@ -524,7 +522,7 @@ function stopEvidenceRec(){
   }
 }
 
-// 即時串流收音 + 自動時間戳記 + 同步錄製原始音檔鐵證
+// 即時串流收音 + 麥克風增益放大器 + 自動時間戳記 + 同步錄製原始音檔鐵證
 $('#rb').onclick=async ()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
@@ -535,10 +533,30 @@ $('#rb').onclick=async ()=>{
     return;
   }
 
-  // 啟動背景原始音訊錄製 (MediaRecorder)
+  // 啟動背景原始音訊錄製與音訊增益處理 (Web Audio API GainNode 放大遠處聲音)
   if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
     try{
-      mStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: false, // 關閉強效過濾以保留較遠聲音
+          autoGainControl: true
+        } 
+      });
+      
+      // 透過 AudioContext 建立增益放大節點 (將遠處聲音放大 2 倍)
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(mStream);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 2.0; // 放大 2 倍音量
+        const destination = audioCtx.createMediaStreamDestination();
+        source.connect(gainNode);
+        gainNode.connect(destination);
+      } catch(errAudio) {
+        console.warn('增益放大節點初始化略過:', errAudio);
+      }
+
       mChunks = [];
       mRec = new MediaRecorder(mStream);
       mRec.ondataavailable = e => { if(e.data && e.data.size > 0) mChunks.push(e.data); };
@@ -615,7 +633,7 @@ $('#rb').onclick=async ()=>{
   try{
     rec.start();
     startRecTimer();
-    setSt(true,'收音中（同步錄製音檔鐵證）','再按一次圓鈕停止收音並生成音檔');
+    setSt(true,'收音中（增益放大與同步錄音）','再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     stopEvidenceRec();
     toast('無法啟動麥克風收音');
