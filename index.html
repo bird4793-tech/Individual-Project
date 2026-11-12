@@ -301,7 +301,7 @@ if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
 const st=m=>new Date(m.time).getTime(),en=m=>st(m)+m.dur*6e4;
 const save=()=>W('mp2',S);
-let recording=false,rec=null,committed='',mRec=null,mChunks=[],mStream=null,audioUrl=null,recTimer=null,recSec=0;
+let recording=false,rec=null,committed='',mRec=null,mChunks=[],mStream=null,audioCtx=null,audioUrl=null,recTimer=null,recSec=0;
 
 function updateWordCount(){
   const len = ($('#tx').value || '').replace(/\s+/g, '').length;
@@ -400,8 +400,7 @@ $('#list').onclick=e=>{const r=e.target.closest('.mi');if(!r||r.dataset.id==S.cu
   S.cur=r.dataset.id;save();load()};
 $('#add').onclick=()=>{if(recording)return toast('正在收音，請先停止收音再新增會議');S.ms.push(nm());S.cur=S.ms[S.ms.length-1].id;save();load();$('#ti').focus()};
 $('#del').onclick=()=>{if(recording)return toast('正在收音，請先停止收音');
-  if(!confirm('確定刪除這場會議與其內容？'))return;
-  S.ms=S.ms.filter(m=>m.id!=S.cur);if(!S.ms.length)S.ms=[nm()];S.cur=S.ms[0].id;save();load()};
+  S.ms=S.ms.filter(m=>m.id!=S.cur);if(!S.ms.length)S.ms=[nm()];S.cur=S.ms[0].id;save();load();toast('已刪除此場會議')};
 $('#ti').oninput=e=>{cur().title=e.target.value;save();rl();tick()};
 $('#tm').oninput=e=>{cur().time=e.target.value;save();rl();tick()};
 $('#du').oninput=e=>{cur().dur=Math.max(5,+e.target.value||30);save();rl();tick()};
@@ -512,6 +511,10 @@ function stopEvidenceRec(){
     mStream.getTracks().forEach(track => track.stop());
     mStream = null;
   }
+  if(audioCtx){
+    try{ audioCtx.close(); }catch(e){}
+    audioCtx = null;
+  }
 }
 
 $('#rb').onclick=async ()=>{
@@ -534,20 +537,22 @@ $('#rb').onclick=async ()=>{
         } 
       });
       
+      let recTargetStream = mStream;
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioCtx.createMediaStreamSource(mStream);
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 2.0;
+        gainNode.gain.value = 6.0; // 增益放大調至最大 6 倍
         const destination = audioCtx.createMediaStreamDestination();
         source.connect(gainNode);
         gainNode.connect(destination);
+        recTargetStream = destination.stream;
       } catch(errAudio) {
         console.warn('增益放大節點初始化略過:', errAudio);
       }
 
       mChunks = [];
-      mRec = new MediaRecorder(mStream);
+      mRec = new MediaRecorder(recTargetStream);
       mRec.ondataavailable = e => { if(e.data && e.data.size > 0) mChunks.push(e.data); };
       mRec.onstop = () => {
         if(!mChunks.length) return;
@@ -622,7 +627,7 @@ $('#rb').onclick=async ()=>{
   try{
     rec.start();
     startRecTimer();
-    setSt(true,'收音中（增益放大與同步錄音）','再按一次圓鈕停止收音並生成音檔');
+    setSt(true,'收音中（6倍最大增益放大＋同步錄音）','再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     stopEvidenceRec();
     toast('無法啟動麥克風收音');
@@ -730,8 +735,21 @@ $('#dlm').onclick=()=>{
   toast('已下載完整會議紀錄與逐字稿 (.txt)');
 };
 
-$('#cp').onclick=()=>{const t=cur().min;if(!t.trim())return toast('還沒有內容可以複製');
-  navigator.clipboard?navigator.clipboard.writeText(t).then(()=>toast('已複製'),()=>toast('複製失敗')):toast('此瀏覽器不支援複製')};
+$('#cp').onclick=()=>{
+  const t=cur().min;
+  if(!t.trim())return toast('還沒有內容可以複製');
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    toast('已複製');
+  } catch (e) {
+    toast('複製失敗');
+  }
+  document.body.removeChild(ta);
+};
 
 /* stars */
 (()=>{let r=7,s=[];const R=()=>(r=r*16807%2147483647)/2147483647;
