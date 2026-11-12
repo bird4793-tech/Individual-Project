@@ -588,14 +588,14 @@ $('#rb').onclick=async ()=>{
       if(res.isFinal){
         const textChunk = res[0].transcript.trim();
         if(textChunk){
-          committed += (committed && !/\n$/.test(committed) ? '\n' : '') + nowStamp() + textChunk;
+          committed += (committed && !/\n$/.test(committed) ? '\n' : '') + nowStamp() + textChunk + '\n';
         }
       } else {
         interim += res[0].transcript;
       }
     }
     const t = $('#tx');
-    t.value = committed + (interim ? ((committed ? '\n' : '') + interim) : '');
+    t.value = committed + (interim ? nowStamp() + interim : '');
     cur().tx = t.value;
     updateWordCount();
     t.scrollTop = t.scrollHeight;
