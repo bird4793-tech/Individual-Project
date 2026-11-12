@@ -163,9 +163,9 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       <button type="button" class="qd" data-d="@outlook.com">@outlook.com</button>
     </div>
     <div class="chips" id="chips"></div>
-    <div class="bar"><label for="rc" style="margin-top:26px">收件信箱（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入勾選信箱</button><button class="lk" id="clr">清空</button></span></div>
+    <div class="bar"><label for="rc" style="margin-top:26px">鍋子空投地址（逗號或分號分隔）</label><span class="acts" style="margin-top:26px"><button class="lk" id="fill">帶入勾選苦主</button><button class="lk" id="clr">清空</button></span></div>
     <textarea id="rc" rows="3"></textarea>
-    <button class="btn" id="inv" style="margin-top:18px">發送行事曆邀請通知</button>
+    <button class="btn" id="inv" style="margin-top:18px">發送鴻門宴召集令（別想裝死）</button>
   </section>
 </div>
 
@@ -196,7 +196,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
         <select id="l1">
           <option value="auto" selected>自動偵測 (Auto)</option>
           <option value="zh-TW">正體中文</option>
-          <option value="nan-TW">台語 (閩南語 / 諧音辨識)</option>
+          <option value="nan-TW">台語 (閩南語 / AI 原音辨識)</option>
           <option value="zh-HK">廣東話 (粵語)</option>
           <option value="en-US">English</option>
           <option value="ja-JP">日本語</option>
@@ -223,7 +223,7 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
         </select>
       </div>
     </div>
-    <button class="btn main" id="gen">整理並產出會議紀錄</button>
+    <button class="btn main" id="gen">煉成甩鍋生死簿（AI 抓戰犯）</button>
   </section>
   <section>
     <div class="bar">
@@ -235,9 +235,9 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <textarea id="mn" placeholder="AI 正在幫你把廢話濃縮成『誰該負責』的致命鐵證，請稍候…"></textarea>
     <div class="sendrow">
-      <button class="btn" id="snd" style="flex:2">寄送會議紀錄</button>
-      <button class="btn" id="dlm" style="flex:1">下載紀錄檔</button>
-      <button class="btn" id="cp" style="flex:1">複製全文</button>
+      <button class="btn" id="snd" style="flex:2">發送抓交替通知書</button>
+      <button class="btn" id="dlm" style="flex:1">存成保命護身符</button>
+      <button class="btn" id="cp" style="flex:1">複製貼去群組公審</button>
     </div>
   </section>
 </div>
@@ -482,11 +482,63 @@ $('#chips').onclick=e=>{
   }
 };
 
-$('#fill').onclick=()=>{syncAttToRcpt();save();chips();toast('已重新帶入勾選信箱')};
+$('#fill').onclick=()=>{syncAttToRcpt();save();chips();toast('已重新帶入勾選苦主')};
 $('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';(cur().att||[]).forEach(a=>a.selected=false);save();chips()};
 
 $('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';$('#rtm').textContent='00:00';updateWordCount();$('#evid').classList.remove('on');if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null}save()};
 $('#cmn').onclick=()=>{cur().min='';$('#mn').value='';save();toast('會議紀錄已清空')};
+
+async function transcribeAudioWithGemini(blob, mime) {
+  const apiKey = $('#key').value.trim();
+  if (!apiKey) {
+    toast('💡 想讓 AI 直接聽懂純台語錄音？請在右上角填入 Gemini API Key！');
+    return;
+  }
+  toast('🎙️ 正在啟動 Gemini AI 原音聽寫純台語中，請稍候…');
+  setSt(false, '台語 AI 聽寫中…', '正在將錄音檔送交 Gemini 進行純台語辨識');
+  try {
+    const b64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    const cleanMime = (mime || 'audio/webm').split(';')[0];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: '這是一段包含台語（台灣閩南語）或台語夾雜國語的會議錄音。請仔細聆聽原音，直接將語音內容轉寫成精準、道地的台語漢字與正體中文逐字稿。請在每段話開頭加上預估的時間戳記（格式如 [00:02] ），不要輸出任何額外的解釋或開場白。' },
+            { inline_data: { mime_type: cleanMime, data: b64 } }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const transcript = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (transcript) {
+      const t = $('#tx');
+      const prefix = t.value.trim() ? t.value.trim() + '\n' : '';
+      t.value = prefix + transcript + '\n';
+      cur().tx = t.value;
+      updateWordCount();
+      t.scrollTop = t.scrollHeight;
+      save();
+      toast('✨ 純台語 AI 原音逐字稿辨識完成！');
+    } else {
+      toast('⚠️ 錄音中未偵測到清晰的台語語音');
+    }
+  } catch (err) {
+    console.error('Gemini 台語音訊轉錄失敗:', err);
+    toast('台語 AI 聽寫失敗：' + err.message);
+  } finally {
+    setSt(false, '待命中', '按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
+  }
+}
 
 $('#upf').onchange=e=>{
   const f = e.target.files && e.target.files[0];
@@ -498,7 +550,11 @@ $('#upf').onchange=e=>{
   dla.href = audioUrl;
   dla.download = f.name;
   $('#evid').classList.add('on');
-  toast('已載入音檔，可邊播放邊收音或對照逐字稿！');
+  if($('#l1').value === 'nan-TW' && $('#key').value.trim()){
+    transcribeAudioWithGemini(f, f.type || 'audio/mp3');
+  } else {
+    toast('已載入音檔，可邊播放邊收音或對照逐字稿！');
+  }
   e.target.value = '';
 };
 
@@ -572,7 +628,11 @@ $('#rb').onclick=async ()=>{
         save();
         dla.download = `${titleStr}_錄音鐵證_${dt.fileTag}.${ext}`;
         $('#evid').classList.add('on');
-        toast(`原始錄音鐵證已生成（${dt.readable}），可試聽或下載！`);
+        if ($('#l1').value === 'nan-TW') {
+          transcribeAudioWithGemini(blob, mime);
+        } else {
+          toast(`原始錄音鐵證已生成（${dt.readable}），可試聽或下載！`);
+        }
       };
       mRec.start();
     }catch(err){
@@ -654,7 +714,7 @@ $('#gen').onclick = async () => {
   const p = `請將下面的會議逐字稿整理成會議紀錄，用「${$('#l2').value}」輸出，包含：會議主題、時間、重點摘要、決議事項、待辦事項（有提到負責人與期限就列出）。\n注意：逐字稿為語音辨識產生，若其中包含「台語（閩南語）或台灣國語的同音諧音字」（例如：哩賀=你好、安捏=這樣、母湯=不行、拍謝=抱歉、衝啥=做什麼、阿捏、齁、啦等），請自動根據上下文語意精準還原其真實意思；若輸出語言選擇「台語（道地台語漢字口吻）」，請用道地傳神的台語漢字與職場口氣撰寫。只根據逐字稿，不要編造內容。\n\n主題：${m.title || '（未填）'}\n時間：${tf(m.time)}\n出席：${selectedNames || '（未填）'}\n\n逐字稿：\n${m.tx}`;
   
   b.disabled = true;
-  b.textContent = '整理中…';
+  b.textContent = '正在抓戰犯與分鍋中…';
 
   try {
     const payload = {
@@ -676,7 +736,7 @@ $('#gen').onclick = async () => {
       m.min = j.summary;
       $('#mn').value = m.min;
       save();
-      toast('會議紀錄已產出，請審閱後寄送');
+      toast('甩鍋生死簿已煉成，請審閱後發射！');
     } else {
       throw new Error((j && j.message) || '產出失敗');
     }
@@ -684,7 +744,7 @@ $('#gen').onclick = async () => {
     toast('產出失敗：' + e.message);
   } finally {
     b.disabled = false;
-    b.textContent = '整理並產出會議紀錄';
+    b.textContent = '煉成甩鍋生死簿（AI 抓戰犯）';
   }
 };
 
@@ -694,7 +754,7 @@ $('#snd').onclick = async () => {
   if (!to.length) return toast('發送對象為 0 人！請先勾選出席者或填寫收件信箱');
 
   b.disabled = true;
-  b.textContent = '寄送中…';
+  b.textContent = '鐵證發射中…';
 
   try {
     const resp = await fetch(GAS_URL, {
@@ -709,7 +769,7 @@ $('#snd').onclick = async () => {
 
     const j = await resp.json();
     if (j && j.status === 'success') {
-      toast(`會議紀錄已成功寄送至 ${to.length} 位收件人！`);
+      toast(`鐵證信已成功發射給 ${to.length} 位潛在背鍋俠！`);
     } else {
       throw new Error((j && j.message) || '寄送失敗');
     }
@@ -717,7 +777,40 @@ $('#snd').onclick = async () => {
     toast('寄送失敗：' + e.message);
   } finally {
     b.disabled = false;
-    b.textContent = '寄送會議紀錄';
+    b.textContent = '發射鐵證信（別想賴帳）';
+  }
+};
+
+$('#snd').onclick = async () => {
+  const m = cur(), to = getValidRecipients(), b = $('#snd');
+  if (!m.min.trim()) return toast('還沒有會議紀錄可以寄送');
+  if (!to.length) return toast('發送對象為 0 人！請先勾選出席者或填寫收件信箱');
+
+  b.disabled = true;
+  b.textContent = '抓交替通知發送中…';
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'sendEmail',
+        recipients: to,
+        subject: '【會議紀錄】' + (m.title || '會議紀要'),
+        content: m.min
+      })
+    });
+
+    const j = await resp.json();
+    if (j && j.status === 'success') {
+      toast(`抓交替通知書已成功發送給 ${to.length} 位苦主！`);
+    } else {
+      throw new Error((j && j.message) || '寄送失敗');
+    }
+  } catch (e) {
+    toast('寄送失敗：' + e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = '發送抓交替通知書';
   }
 };
 
