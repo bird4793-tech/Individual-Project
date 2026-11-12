@@ -78,7 +78,8 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .rb{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 30%,transparent)}
 .rec b{font:300 17px var(--serif);letter-spacing:.2em;display:block;font-weight:300}
 .rec small{color:var(--dim);font-size:14px;letter-spacing:.06em}
-.rec .lk{margin-left:auto}
+.rec .lk{margin-left:auto;white-space:nowrap}
+.rec .acts{flex-shrink:0;white-space:nowrap}
 .evid{display:none;align-items:center;gap:14px;margin-bottom:16px;padding:10px 14px;border:1px solid var(--amber);border-radius:10px;background:color-mix(in srgb,var(--amber) 8%,transparent)}
 .evid.on{display:flex}
 .evid audio{flex:1;height:34px;outline:none}
@@ -185,6 +186,8 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <div class="evid" id="evid">
       <audio id="aud" controls></audio>
+      <a class="btn main" id="dla" download="錄音鐵證.webm">下載錄音鐵證</a>
+    </div>
     <textarea id="tx" placeholder="也可以直接貼上討論內容…"></textarea>
     <div class="sel">
       <div>
@@ -318,9 +321,20 @@ function stopRecTimer(){
   clearInterval(recTimer);
 }
 
+// 取得對應錄音進度條的相對時間戳記 (例如 [00:15] 或 [01:02:05])
 function nowStamp(){
+  const h = Math.floor(recSec / 3600);
+  const m = Math.floor((recSec % 3600) / 60);
+  const s = recSec % 60;
+  return h > 0 ? `[${pad(h)}:${pad(m)}:${pad(s)}] ` : `[${pad(m)}:${pad(s)}] `;
+}
+
+// 取得檔案命名與紀錄用的完整製作日期＋時間
+function getFileDateTime(){
   const d = new Date();
-  return `[${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}] `;
+  const fileTag = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const readable = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return { fileTag, readable };
 }
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),4000)}
@@ -510,10 +524,12 @@ $('#rb').onclick=async ()=>{
         const dla = $('#dla');
         dla.href = audioUrl;
         const titleStr = (cur().title || '未命名會議').replace(/[\\/:*?"<>|]/g, '_');
-        const dateStr = new Date().toISOString().slice(0,10);
-        dla.download = `${titleStr}_錄音鐵證_${dateStr}.${ext}`;
+        const dt = getFileDateTime();
+        cur().recCreatedAt = dt.readable;
+        save();
+        dla.download = `${titleStr}_錄音鐵證_${dt.fileTag}.${ext}`;
         $('#evid').classList.add('on');
-        toast('原始錄音鐵證已生成，可隨時試聽或下載保存！');
+        toast(`原始錄音鐵證已生成（${dt.readable}），可試聽或下載！`);
       };
       mRec.start();
     }catch(err){
@@ -671,12 +687,13 @@ $('#dlm').onclick=()=>{
   const content = (m.min || '').trim();
   if(!content) return toast('還沒有會議紀錄可以下載');
   const titleStr = (m.title || '未命名會議').replace(/[\\/:*?"<>|]/g, '_');
-  const dateStr = new Date().toISOString().slice(0,10);
-  const fullText = `${content}\n\n====================\n【原始逐字稿（含時間戳記）】\n${m.tx || '（無）'}`;
+  const dt = getFileDateTime();
+  const recordedTimeInfo = m.recCreatedAt ? `錄音製作時間：${m.recCreatedAt}\n` : '';
+  const fullText = `【檔案匯出時間：${dt.readable}】\n${recordedTimeInfo}\n${content}\n\n====================\n【原始逐字稿（時間戳記對應錄音檔秒數）】\n${m.tx || '（無）'}`;
   const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${titleStr}_會議紀錄與逐字稿_${dateStr}.txt`;
+  a.download = `${titleStr}_會議紀錄與逐字稿_${dt.fileTag}.txt`;
   a.click();
   toast('已下載完整會議紀錄與逐字稿 (.txt)');
 };
