@@ -83,9 +83,11 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .evid.on{display:flex}
 .evid audio{flex:1;height:34px;outline:none}
 .evid .btn{width:auto;padding:6px 16px;font-size:14px;min-height:auto;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.rec-meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin:0 0 8px;letter-spacing:.06em;flex-wrap:wrap;gap:10px}
+.rec-meta b{color:var(--amber);font-weight:400;font-variant-numeric:tabular-nums}
 #tx{height:230px}#mn{height:260px}
 .sel{display:flex;gap:18px;margin:6px 0 22px}.sel div{flex:1}
-.sendrow{display:flex;gap:14px;margin-top:14px}
+.sendrow{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
 footer{position:relative;margin-top:20px;height:160px;line-height:0}
 #sky{width:100%;height:160px;display:block}
 #sky .b{fill:var(--bld)}
@@ -170,20 +172,27 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     <h2>收音</h2>
     <div class="rec">
       <button class="rb" id="rb" aria-label="開始或停止收音"><i></i></button>
-      <div><b id="stt">待命中</b><small id="sth">按下圓鈕開始講話，文字會即時出現在下方</small></div>
-      <button class="lk" id="cx">清除內容</button>
+      <div><b id="stt">待命中</b><small id="sth">按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔</small></div>
+      <div class="acts" style="margin-left:auto">
+        <label class="lk" for="upf" style="margin:0;cursor:pointer">載入音檔</label>
+        <input type="file" id="upf" accept="audio/*" style="display:none">
+        <button class="lk" id="cx">清除內容</button>
+      </div>
+    </div>
+    <div class="rec-meta">
+      <span>收音時長：<b id="rtm">00:00</b></span>
+      <span>逐字稿字數：<b id="wct">0</b> 字（自動附帶時間戳記）</span>
     </div>
     <div class="evid" id="evid">
       <audio id="aud" controls></audio>
-      <a class="btn main" id="dla" download="會議錄音鐵證.webm">下載錄音鐵證</a>
-    </div>
     <textarea id="tx" placeholder="也可以直接貼上討論內容…"></textarea>
     <div class="sel">
       <div>
         <label for="l1" style="margin-top:0">收音語言</label>
         <select id="l1">
           <option value="auto" selected>自動偵測 (Auto)</option>
-          <option value="zh-TW">繁體中文</option>
+          <option value="zh-TW">正體中文</option>
+          <option value="zh-HK">廣東話 (粵語)</option>
           <option value="en-US">English</option>
           <option value="ja-JP">日本語</option>
           <option value="th-TH">ไทย (Thai)</option>
@@ -196,8 +205,9 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       <div>
         <label for="l2" style="margin-top:0">紀錄語言</label>
         <select id="l2">
+          <option selected>正體中文（標準）</option>
+          <option>廣東話</option>
           <option>日本語</option>
-          <option>繁體中文（標準）</option>
           <option>English</option>
           <option>ไทย</option>
           <option>한국어</option>
@@ -218,7 +228,11 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
       </div>
     </div>
     <textarea id="mn" placeholder="按下「整理並產出會議紀錄」後，整理好的內容會出現在這裡，可以直接修改。"></textarea>
-    <div class="sendrow"><button class="btn" id="snd">寄送會議紀錄</button><button class="btn" id="cp" style="flex:0 0 130px">複製全文</button></div>
+    <div class="sendrow">
+      <button class="btn" id="snd" style="flex:2">寄送會議紀錄</button>
+      <button class="btn" id="dlm" style="flex:1">下載紀錄檔</button>
+      <button class="btn" id="cp" style="flex:1">複製全文</button>
+    </div>
   </section>
 </div>
 </div>
@@ -283,7 +297,31 @@ if(!S.ms.find(m=>m.id==S.cur))S.cur=S.ms[0].id;
 const cur=()=>S.ms.find(m=>m.id==S.cur);
 const st=m=>new Date(m.time).getTime(),en=m=>st(m)+m.dur*6e4;
 const save=()=>W('mp2',S);
-let recording=false,rec=null,committed='',mRec=null,mChunks=[],mStream=null,audioUrl=null;
+let recording=false,rec=null,committed='',mRec=null,mChunks=[],mStream=null,audioUrl=null,recTimer=null,recSec=0;
+
+function updateWordCount(){
+  const len = ($('#tx').value || '').replace(/\s+/g, '').length;
+  $('#wct').textContent = len;
+}
+
+function startRecTimer(){
+  recSec = 0;
+  $('#rtm').textContent = '00:00';
+  clearInterval(recTimer);
+  recTimer = setInterval(()=>{
+    recSec++;
+    $('#rtm').textContent = `${pad(Math.floor(recSec/60))}:${pad(recSec%60)}`;
+  }, 1000);
+}
+
+function stopRecTimer(){
+  clearInterval(recTimer);
+}
+
+function nowStamp(){
+  const d = new Date();
+  return `[${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}] `;
+}
 
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),4000)}
 function conflicts(){const s=[...S.ms].sort((a,b)=>st(a)-st(b)),c=new Set();s.forEach((m,i)=>{for(let j=0;j<i;j++)if(st(m)<en(s[j])){c.add(m.id);break}});return c}
@@ -329,6 +367,7 @@ function load(){
   $('#tx').value=m.tx;
   $('#mn').value=m.min;
   $('#key').value = L('gemini_custom_key', '');
+  updateWordCount();
   rl();chips();tick();
 }
 
@@ -355,7 +394,7 @@ $('#ti').oninput=e=>{cur().title=e.target.value;save();rl();tick()};
 $('#tm').oninput=e=>{cur().time=e.target.value;save();rl();tick()};
 $('#du').oninput=e=>{cur().dur=Math.max(5,+e.target.value||30);save();rl();tick()};
 $('#rc').oninput=e=>{cur().rcpt=e.target.value;save();updateRecipientCount()};
-$('#tx').oninput=e=>{cur().tx=e.target.value;save()};
+$('#tx').oninput=e=>{cur().tx=e.target.value;updateWordCount();save()};
 $('#mn').oninput=e=>{cur().min=e.target.value;save()};
 
 // 網域快選
@@ -410,13 +449,29 @@ $('#chips').onclick=e=>{
 $('#fill').onclick=()=>{syncAttToRcpt();save();chips();toast('已重新帶入勾選信箱')};
 $('#clr').onclick=()=>{cur().rcpt='';$('#rc').value='';(cur().att||[]).forEach(a=>a.selected=false);save();chips()};
 
-$('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';$('#evid').classList.remove('on');if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null}save()};
+$('#cx').onclick=()=>{if(recording)return toast('請先停止收音');cur().tx='';$('#tx').value='';$('#rtm').textContent='00:00';updateWordCount();$('#evid').classList.remove('on');if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null}save()};
 $('#cmn').onclick=()=>{cur().min='';$('#mn').value='';save();toast('會議紀錄已清空')};
+
+// 載入外部音檔進行播放與對照
+$('#upf').onchange=e=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  if(audioUrl) URL.revokeObjectURL(audioUrl);
+  audioUrl = URL.createObjectURL(f);
+  $('#aud').src = audioUrl;
+  const dla = $('#dla');
+  dla.href = audioUrl;
+  dla.download = f.name;
+  $('#evid').classList.add('on');
+  toast('已載入音檔，可邊播放邊收音或對照逐字稿！');
+  e.target.value = '';
+};
 
 function setSt(on,t,h){recording=on;$('#rb').classList.toggle('on',on);$('#stt').textContent=t;$('#sth').textContent=h}
 
 // 停止背景原始音訊錄製並生成鐵證下載列
 function stopEvidenceRec(){
+  stopRecTimer();
   if(mRec && mRec.state !== 'inactive'){
     try{ mRec.stop(); }catch(e){}
   }
@@ -426,7 +481,7 @@ function stopEvidenceRec(){
   }
 }
 
-// 即時串流收音 + 同步錄製原始音檔鐵證
+// 即時串流收音 + 自動時間戳記 + 同步錄製原始音檔鐵證
 $('#rb').onclick=async ()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
@@ -479,7 +534,10 @@ $('#rb').onclick=async ()=>{
     for(let k = e.resultIndex; k < e.results.length; k++){
       const res = e.results[k];
       if(res.isFinal){
-        committed += (committed && !/\s$/.test(committed) ? '\n' : '') + res[0].transcript;
+        const textChunk = res[0].transcript.trim();
+        if(textChunk){
+          committed += (committed && !/\n$/.test(committed) ? '\n' : '') + nowStamp() + textChunk;
+        }
       } else {
         interim += res[0].transcript;
       }
@@ -487,6 +545,7 @@ $('#rb').onclick=async ()=>{
     const t = $('#tx');
     t.value = committed + (interim ? ((committed ? '\n' : '') + interim) : '');
     cur().tx = t.value;
+    updateWordCount();
     t.scrollTop = t.scrollHeight;
     save();
   };
@@ -504,12 +563,13 @@ $('#rb').onclick=async ()=>{
       try{rec.start()}catch(err){}
     } else {
       stopEvidenceRec();
-      setSt(false,'待命中','按下圓鈕開始講話，文字會即時出現在下方');
+      setSt(false,'待命中','按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
     }
   };
   
   try{
     rec.start();
+    startRecTimer();
     setSt(true,'收音中（同步錄製音檔鐵證）','再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     stopEvidenceRec();
@@ -603,6 +663,22 @@ $('#snd').onclick = async () => {
     b.disabled = false;
     b.textContent = '寄送會議紀錄';
   }
+};
+
+// 下載會議紀錄文字檔 (.txt)
+$('#dlm').onclick=()=>{
+  const m = cur();
+  const content = (m.min || '').trim();
+  if(!content) return toast('還沒有會議紀錄可以下載');
+  const titleStr = (m.title || '未命名會議').replace(/[\\/:*?"<>|]/g, '_');
+  const dateStr = new Date().toISOString().slice(0,10);
+  const fullText = `${content}\n\n====================\n【原始逐字稿（含時間戳記）】\n${m.tx || '（無）'}`;
+  const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${titleStr}_會議紀錄與逐字稿_${dateStr}.txt`;
+  a.click();
+  toast('已下載完整會議紀錄與逐字稿 (.txt)');
 };
 
 $('#cp').onclick=()=>{const t=cur().min;if(!t.trim())return toast('還沒有內容可以複製');
