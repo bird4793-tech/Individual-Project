@@ -121,6 +121,36 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}.hr{width:100%}#key{flex:1;width:auto;max-width:none}.hero{padding:56px 0 44px}.evid{flex-direction:column;align-items:stretch}}
+@media(max-width:600px){
+  body{font-size:16px;line-height:1.75}
+  .wrap{padding:22px 16px 0}
+  h1{font-size:28px;letter-spacing:.18em}
+  .sub{font-size:13px;letter-spacing:.06em}
+  .hr{gap:12px}
+  .hero{padding:36px 0 32px}
+  .hero p{font-size:13px;letter-spacing:.18em}
+  #cd{font-size:clamp(44px,13vw,64px)}
+  #cd u{font-size:16px;margin:0 .35em 0 .1em}
+  section{padding:22px 0 26px}
+  :root[data-theme=light] section{padding:20px 16px 24px;border-radius:12px}
+  h2{font-size:18px;letter-spacing:.12em;margin-bottom:16px}
+  input,textarea,select{font-size:16px !important;min-width:0}
+  .row{gap:10px}
+  .row>.sm{flex:0 0 82px}
+  .sel{flex-direction:column;gap:14px}
+  .rec{gap:14px}
+  .rb{width:64px;height:64px}
+  .rec b{font-size:16px;letter-spacing:.1em}
+  .rec small{font-size:13px;display:block;line-height:1.45}
+  .dropzone{padding:16px 12px}
+  .dropzone b{font-size:14px}
+  #tx{height:210px}
+  #mn{height:240px}
+  .sendrow{flex-direction:column;gap:10px}
+  .sendrow .btn,.btn{min-height:48px;font-size:15px;padding:12px 16px}
+  .chips span{padding:6px 12px 6px 14px;font-size:14px}
+  #toast{bottom:18px;font-size:13px;padding:10px 16px;border-radius:14px;text-align:center}
+}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
