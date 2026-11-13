@@ -615,22 +615,24 @@ async function transcribeAudioWithGemini(blob, options = {}){
   const { replaceExisting = false, fileName = '' } = options;
   syncApiKeyInput();
   const apiKey = getCleanApiKey();
-  if(!apiKey){
-    toast('⚠️ 請先在右上角貼上 API Key 才能執行 AI 原音聽寫！');
-    return;
-  }
   if(!blob || blob.size < 400){
     return toast('音檔過短或沒有聲音，無法聽寫');
   }
 
-  const btn = $('#aitx');
   const dz = $('#dz');
   if(dz) dz.style.opacity = '0.6';
 
   const isLargeFile = blob.size > 15 * 1024 * 1024;
-  toast(isLargeFile
-    ? `📦 偵測到超長錄音檔（${(blob.size/1024/1024).toFixed(1)} MB），正在串流上傳並由 AI 聽寫中，請稍候…`
-    : '🎙️ 正在啟動 Gemini AI 原音聽寫中，請稍候…');
+  if(!apiKey && isLargeFile){
+    if(dz) dz.style.opacity = '1';
+    return toast('⚠️ 超過 15MB 的超長錄音檔，請先在右上角填入 API Key 才能走雲端串流通道喔！');
+  }
+
+  toast(!apiKey
+    ? '📱 正在透過雲端後台啟動 AI 原音聽寫（免填金鑰），請稍候…'
+    : (isLargeFile
+      ? `📦 偵測到超長錄音檔（${(blob.size/1024/1024).toFixed(1)} MB），正在串流上傳並由 AI 聽寫中，請稍候…`
+      : '🎙️ 正在啟動 Gemini AI 原音聽寫中，請稍候…'));
 
   let uploadedFileName = '';
   try{
@@ -650,50 +652,73 @@ async function transcribeAudioWithGemini(blob, options = {}){
 
     const promptText = `你是一位專業且精通台灣語言的會議聽寫員。${langInstruction}\n請務必在每一句話開頭加上時間戳記格式，例如 [00:02] 講話內容（若超過一小時則用 [01:05:12]）。只輸出逐字稿本身，不要加任何開場白、說明或 Markdown 符號。若音檔完全無聲請回覆「（無清晰語音）」。`;
 
-    let mediaPart = null;
-    if(isLargeFile){
-      const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
-      uploadedFileName = fileObj.name;
-      mediaPart = { file_data: { mime_type: fileObj.mimeType || blob.type || 'audio/webm', file_uri: fileObj.uri } };
-    } else {
+    let transcript = '';
+
+    // 通道 A：未填右上角 API Key 時，自動走 GAS 後台藏好的預設金鑰（手機族免設定直接用！）
+    if(!apiKey){
       const base64Audio = await blobToBase64(blob);
       const mimeType = (blob.type || 'audio/webm').split(';')[0];
-      mediaPart = { inline_data: { mime_type: mimeType, data: base64Audio } };
-    }
+      const gasResp = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'transcribe',
+          audioBase64: base64Audio,
+          mimeType: mimeType,
+          prompt: promptText
+        })
+      });
+      const gasData = await gasResp.json();
+      if(gasData.error) throw new Error(gasData.error);
+      transcript = (gasData.transcript || '').trim();
+    } else {
+      // 通道 B：有填右上角個人 API Key 時，走直連 / 大檔案串流通道
+      let mediaPart = null;
+      if(isLargeFile){
+        const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
+        uploadedFileName = fileObj.name;
+        mediaPart = { file_data: { mime_type: fileObj.mimeType || blob.type || 'audio/webm', file_uri: fileObj.uri } };
+      } else {
+        const base64Audio = await blobToBase64(blob);
+        const mimeType = (blob.type || 'audio/webm').split(';')[0];
+        mediaPart = { inline_data: { mime_type: mimeType, data: base64Audio } };
+      }
 
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
-    let transcript = '';
-    let lastErr = '';
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+      let lastErr = '';
 
-    for(const model of models){
-      try{
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: promptText },
-                mediaPart
-              ]
-            }]
-          })
-        });
-        const data = await resp.json();
-        if(!resp.ok){
-          lastErr = data?.error?.message || `HTTP ${resp.status}`;
-          continue;
+      for(const model of models){
+        try{
+          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: promptText },
+                  mediaPart
+                ]
+              }]
+            })
+          });
+          const data = await resp.json();
+          if(!resp.ok){
+            lastErr = data?.error?.message || `HTTP ${resp.status}`;
+            continue;
+          }
+          transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+          if(transcript) break;
+        }catch(err){
+          lastErr = err.message;
         }
-        transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-        if(transcript) break;
-      }catch(err){
-        lastErr = err.message;
+      }
+
+      if(!transcript){
+        throw new Error(lastErr || 'AI 未回傳任何文字');
       }
     }
 
-    if(!transcript){
-      throw new Error(lastErr || 'AI 未回傳任何文字');
-    }
+    if(!transcript) throw new Error('AI 未回傳任何文字');
 
     const box = $('#tx');
     if(replaceExisting || !box.value.trim()){
@@ -711,7 +736,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
     console.error('Gemini Audio Transcribe Error:', err);
     toast(`⚠️ AI 聽寫失敗：${err.message}`);
   }finally{
-    if(uploadedFileName){
+    if(uploadedFileName && apiKey){
       fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(apiKey)}`, { method: 'DELETE' }).catch(()=>{});
     }
     if(dz) dz.style.opacity = '1';
