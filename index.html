@@ -726,7 +726,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
         mediaPart = { inline_data: { mime_type: safeMime, data: base64Audio } };
       }
 
-      const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
+      const models = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
       let lastErr = '';
 
       for(const model of models){
@@ -857,7 +857,6 @@ $('#rb').onclick=async ()=>{
   syncApiKeyInput();
   const selLang = $('#l1').value;
   const isTaiwaneseMode = (selLang === 'nan-TW');
-  const textBeforeRec = ($('#tx').value || '').trim();
 
   if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
     try{
@@ -978,7 +977,7 @@ $('#rb').onclick=async ()=>{
         }
       }
     }, 2000);
-    setSt(true, isTaiwaneseMode ? '台語雙軌收音中（停止後自動 AI 原音辨識）' : '收音中', '再按一次圓鈕停止收音並生成音檔');
+    setSt(true, isTaiwaneseMode ? '台語雙軌收音中' : '收音中', '再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     recording = false;
     stopEvidenceRec();
