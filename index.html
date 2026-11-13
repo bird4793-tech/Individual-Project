@@ -430,8 +430,188 @@ $('#key').addEventListener('input', syncApiKeyInput);
 $('#key').addEventListener('change', syncApiKeyInput);
 $('#key').addEventListener('paste', () => setTimeout(syncApiKeyInput, 20));
 
+const EYE_OPEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
 $('#tkey').onclick=()=>{
-// ... existing code ... -->
+  const k=$('#key');
+  const isPass = k.type === 'password';
+  k.type = isPass ? 'text' : 'password';
+  $('#tkey').innerHTML = isPass ? EYE_OFF : EYE_OPEN;
+};
+
+$('#list').onclick=e=>{const r=e.target.closest('.mi');if(r){S.cur=r.dataset.id;save();load()}};
+$('#add').onclick=()=>{const m=nm();S.ms.push(m);S.cur=m.id;save();load()};
+$('#del').onclick=()=>{
+  if(S.ms.length<2)return toast('至少保留一場會議');
+  S.ms=S.ms.filter(m=>m.id!=S.cur);
+  S.cur=S.ms[0].id;
+  save();load();toast('已刪除');
+};
+
+$('#ti').oninput=e=>{cur().title=e.target.value;save();rl();tick()};
+$('#tm').oninput=e=>{cur().time=e.target.value;save();rl();tick()};
+$('#du').oninput=e=>{cur().dur=Math.max(5,+e.target.value||30);save();rl();tick()};
+$('#rc').oninput=e=>{cur().rcpt=e.target.value;save();updateRecipientCount()};
+$('#tx').oninput=e=>{cur().tx=e.target.value;committed=e.target.value;updateWordCount();save()};
+$('#mn').oninput=e=>{cur().min=e.target.value;save()};
+
+$('#tx').addEventListener('click', function(){
+  const aud = $('#aud');
+  if(!aud || !aud.src) return;
+  const pos = this.selectionStart;
+  const val = this.value;
+  const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+  const lineEnd = val.indexOf('\n', pos);
+  const line = val.slice(lineStart, lineEnd === -1 ? val.length : lineEnd);
+  const match = line.match(/\[(?:(\d{2}):)?(\d{2}):(\d{2})\]/);
+  if(match){
+    const hrs = match[1] ? parseInt(match[1], 10) : 0;
+    const mins = parseInt(match[2], 10);
+    const secs = parseInt(match[3], 10);
+    const totalSec = hrs * 3600 + mins * 60 + secs;
+    aud.currentTime = totalSec;
+    aud.play().catch(()=>{});
+    toast(`跳轉至原音 ${match[0]} 播放`);
+  }
+});
+
+$All('.qd').forEach(btn => {
+  btn.onclick = () => {
+    const emailInput = $('#ae');
+    const domain = btn.dataset.d;
+    let val = emailInput.value.trim();
+    if (!val) {
+      emailInput.value = domain;
+      emailInput.focus();
+      emailInput.setSelectionRange(0, 0);
+      return;
+    }
+    if (val.includes('@')) {
+      val = val.split('@')[0] + domain;
+    } else {
+      val = val + domain;
+    }
+    emailInput.value = val;
+    emailInput.focus();
+  };
+});
+
+function addA(){
+  let n = $('#an').value.trim();
+  const e = $('#ae').value.trim();
+  if(!e||!e.includes('@'))return toast('請輸入有效的電子郵件');
+  if(!n){
+    const currentNames = (cur().att || []).map(a => a.n);
+    const available = FUNNY_NAMES.filter(fn => !currentNames.includes(fn));
+    const pool = available.length ? available : FUNNY_NAMES;
+    n = pool[Math.floor(Math.random() * pool.length)];
+    toast(`未填姓名，已隨機指派稱號：「${n}」`);
+  }
+  const m=cur();
+  if(!m.att)m.att=[];
+  m.att.push({n, e, selected: true});
+  syncAttToRcpt();
+  $('#an').value='';
+  $('#ae').value='';
+  save();chips();
+}
+$('#aa').onclick=addA;
+$('#ae').onkeydown=e=>{if(e.key=='Enter')addA()};
+
+$('#chips').onclick=e=>{
+  const delIdx = e.target.dataset.del;
+  if(delIdx != null){
+    cur().att.splice(+delIdx, 1);
+    syncAttToRcpt();
+    save();chips();
+    return;
+  }
+  const chipEl = e.target.closest('.chip-item');
+  if(chipEl){
+    const idx = +chipEl.dataset.i;
+    cur().att[idx].selected = !cur().att[idx].selected;
+    syncAttToRcpt();
+    save();chips();
+  }
+};
+
+$('#fill').onclick=()=>{
+  syncAttToRcpt();
+  save();
+  updateRecipientCount();
+  toast('已重新帶入勾選苦主');
+};
+$('#clr').onclick=()=>{
+  cur().rcpt='';
+  if(cur().att) cur().att.forEach(a => a.selected = false);
+  $('#rc').value='';
+  save();chips();
+};
+
+function blobToBase64(blob){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const res = reader.result || '';
+      const base64 = res.split(',')[1] || '';
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function uploadLargeAudioViaFilesAPI(blob, apiKey, displayName){
+  const mimeType = blob.type || 'audio/webm';
+  const numBytes = blob.size;
+  const startRes = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${encodeURIComponent(apiKey)}`, {
+    method: 'POST',
+    headers: {
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(numBytes),
+      'X-Goog-Upload-Header-Content-Type': mimeType,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ file: { display_name: displayName || 'meeting_audio' } })
+  });
+  if(!startRes.ok){
+    const errTxt = await startRes.text();
+    throw new Error(`Files API 啟動失敗 (${startRes.status}): ${errTxt}`);
+  }
+  const uploadUrl = startRes.headers.get('X-Goog-Upload-URL');
+  if(!uploadUrl) throw new Error('無法取得 Google 雲端串流上傳網址');
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Length': String(numBytes),
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize'
+    },
+    body: blob
+  });
+  if(!uploadRes.ok){
+    const errTxt = await uploadRes.text();
+    throw new Error(`大檔案串流上傳失敗 (${uploadRes.status}): ${errTxt}`);
+  }
+  const fileInfo = await uploadRes.json();
+  let fileObj = fileInfo.file || fileInfo;
+
+  let attempts = 0;
+  while(fileObj.state === 'PROCESSING' && attempts < 60){
+    await new Promise(r => setTimeout(r, 2000));
+    attempts++;
+    const checkRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileObj.name}?key=${encodeURIComponent(apiKey)}`);
+    if(checkRes.ok){
+      fileObj = await checkRes.json();
+    }
+  }
+  if(fileObj.state === 'FAILED') throw new Error('Google 音訊處理失敗，請確認音檔格式是否損毀');
+  return fileObj;
+}
+
 async function transcribeAudioWithGemini(blob, options = {}){
   const { replaceExisting = false, fileName = '' } = options;
   syncApiKeyInput();
@@ -445,7 +625,165 @@ async function transcribeAudioWithGemini(blob, options = {}){
   }
 
   const btn = $('#aitx');
-// ... existing code ... -->
+  const dz = $('#dz');
+  const origText = btn ? btn.textContent : '✨ 重新聽寫';
+  if(btn){ btn.disabled = true; btn.textContent = 'AI 聽寫中…'; }
+  if(dz) dz.style.opacity = '0.6';
+
+  const isLargeFile = blob.size > 15 * 1024 * 1024;
+  toast(isLargeFile
+    ? `📦 偵測到超長錄音檔（${(blob.size/1024/1024).toFixed(1)} MB），正在串流上傳並由 AI 聽寫中，請稍候…`
+    : '🎙️ 正在啟動 Gemini AI 原音聽寫中，請稍候…');
+
+  let uploadedFileName = '';
+  try{
+    const l1 = $('#l1').value;
+    let langInstruction = '請以道地繁體中文（台灣慣用語）精準聽寫音檔中的所有對話內容。';
+    if(l1 === 'nan-TW'){
+      langInstruction = '這是一段「台灣閩南語（台語）」或國台語夾雜的對話，請務必直接聽懂原音並使用道地、精準的台語漢字（台灣閩南語推薦用字，例如：毋是、按怎、啥物、遮爾、無要緊、逐家等）完整轉寫逐字稿，切勿翻成英文或亂猜國語諧音。';
+    } else if(l1 === 'zh-HK'){
+      langInstruction = '這是一段「廣東話（粵語）」對話，請使用道地粵語口語字（例如：唔係、點解、乜嘢、喺度）精準轉寫逐字稿。';
+    } else if(l1 === 'en-US'){
+      langInstruction = 'Please transcribe the English audio accurately.';
+    } else if(l1 === 'ja-JP'){
+      langInstruction = '音声を正確な日本語で文字起こししてください。';
+    } else if(l1 === 'ko-KR'){
+      langInstruction = '오디오를 정확한 한국어로 받아쓰기 해주세요.';
+    }
+
+    const promptText = `你是一位專業且精通台灣語言的會議聽寫員。${langInstruction}\n請務必在每一句話開頭加上時間戳記格式，例如 [00:02] 講話內容（若超過一小時則用 [01:05:12]）。只輸出逐字稿本身，不要加任何開場白、說明或 Markdown 符號。若音檔完全無聲請回覆「（無清晰語音）」。`;
+
+    let mediaPart = null;
+    if(isLargeFile){
+      const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
+      uploadedFileName = fileObj.name;
+      mediaPart = { file_data: { mime_type: fileObj.mimeType || blob.type || 'audio/webm', file_uri: fileObj.uri } };
+    } else {
+      const base64Audio = await blobToBase64(blob);
+      const mimeType = (blob.type || 'audio/webm').split(';')[0];
+      mediaPart = { inline_data: { mime_type: mimeType, data: base64Audio } };
+    }
+
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    let transcript = '';
+    let lastErr = '';
+
+    for(const model of models){
+      try{
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                mediaPart
+              ]
+            }]
+          })
+        });
+        const data = await resp.json();
+        if(!resp.ok){
+          lastErr = data?.error?.message || `HTTP ${resp.status}`;
+          continue;
+        }
+        transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+        if(transcript) break;
+      }catch(err){
+        lastErr = err.message;
+      }
+    }
+
+    if(!transcript){
+      throw new Error(lastErr || 'AI 未回傳任何文字');
+    }
+
+    const box = $('#tx');
+    if(replaceExisting || !box.value.trim()){
+      box.value = transcript + '\n';
+    } else {
+      box.value = box.value.trimEnd() + '\n\n' + transcript + '\n';
+    }
+    committed = box.value;
+    cur().tx = box.value;
+    updateWordCount();
+    save();
+    box.scrollTop = box.scrollHeight;
+    toast('✨ AI 原音聽寫完成！已自動標記時間戳記（可點擊 [分:秒] 對質）');
+  }catch(err){
+    console.error('Gemini Audio Transcribe Error:', err);
+    toast(`⚠️ AI 聽寫失敗：${err.message}`);
+  }finally{
+    if(uploadedFileName){
+      fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(apiKey)}`, { method: 'DELETE' }).catch(()=>{});
+    }
+    if(btn){ btn.disabled = false; btn.textContent = origText; }
+    if(dz) dz.style.opacity = '1';
+  }
+}
+
+function handleExternalAudioFile(file){
+  if(!file) return;
+  if(file.size > 2 * 1024 * 1024 * 1024){
+    return toast('⚠️ 檔案超過 2GB 上限，請先分割音檔再上傳');
+  }
+  lastAudioBlob = file;
+  if(audioUrl) URL.revokeObjectURL(audioUrl);
+  audioUrl = URL.createObjectURL(file);
+  $('#aud').src = audioUrl;
+  const dla = $('#dla');
+  dla.href = audioUrl;
+  dla.download = file.name || '匯入錄音鐵證.webm';
+  $('#evid').classList.add('on');
+  const dt = getFileDateTime();
+  cur().recCreatedAt = dt.readable;
+  save();
+  transcribeAudioWithGemini(file, { replaceExisting: !$('#tx').value.trim(), fileName: file.name });
+}
+
+const dz = $('#dz');
+const upf = $('#upf');
+if(dz && upf){
+  dz.onclick = () => upf.click();
+  dz.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); upf.click(); } };
+  upf.onchange = e => {
+    const file = e.target.files[0];
+    if(file) handleExternalAudioFile(file);
+    upf.value = '';
+  };
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+  dz.ondragleave = () => dz.classList.remove('drag');
+  dz.ondrop = e => {
+    e.preventDefault();
+    dz.classList.remove('drag');
+    const file = e.dataTransfer?.files?.[0];
+    if(file) handleExternalAudioFile(file);
+  };
+}
+
+$('#aitx').onclick=()=>{
+  if(!lastAudioBlob) return toast('目前沒有可聽寫的音檔，請先錄音或上傳錄音檔');
+  transcribeAudioWithGemini(lastAudioBlob, { replaceExisting: true });
+};
+
+function setSt(on,t,h){
+  $('#rb').classList.toggle('on',on);
+  $('#stt').textContent=t;
+  $('#sth').textContent=h;
+}
+
+function stopEvidenceRec(){
+  stopRecTimer();
+  clearInterval(keepAliveTimer);
+  if(mRec && mRec.state !== 'inactive'){
+    try{ mRec.stop(); }catch(e){}
+  }
+  if(mStream){
+    mStream.getTracks().forEach(t => t.stop());
+    mStream = null;
+  }
+}
+
 $('#rb').onclick=async ()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
@@ -583,7 +921,6 @@ $('#rb').onclick=async ()=>{
     keepAliveTimer = setInterval(()=>{
       if(!recording) return;
       const now = Date.now();
-      // 每 25 秒或超過 12 秒無回傳時，主動平滑切換新連線，突破瀏覽器單次辨識時間上限
       if((now - sessionStartedAt > 25000) || (now - lastResultAt > 12000 && now - sessionStartedAt > 12000)){
         lastResultAt = now;
         sessionStartedAt = now;
@@ -601,7 +938,43 @@ $('#rb').onclick=async ()=>{
 };
 
 $('#inv').onclick=()=>{
-// ... existing code ... -->
+  const m=cur(),s=new Date(m.time);
+  if(isNaN(s))return toast('請先設定會議時間');
+  const e=new Date(s.getTime()+m.dur*6e4),f=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const to=getValidRecipients();
+  const title=m.title||'未命名會議';
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//SuiyuanHearing//ZH','BEGIN:VEVENT','UID:'+m.id+'@meeting','DTSTAMP:'+f(new Date),'DTSTART:'+f(s),'DTEND:'+f(e),'SUMMARY:'+title,'DESCRIPTION:'+encodeURIComponent('會議邀請：'+title),...to.map(a=>'ATTENDEE;CN='+a+':mailto:'+a),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+  a.download=title+'.ics';
+  a.click();
+  toast('行事曆邀請檔（.ics）已下載');
+};
+
+$('#gen').onclick=async ()=>{
+  const m=cur();
+  if(!m.tx.trim())return toast('請先收音或輸入對話內容');
+  const b=$('#gen');
+  b.disabled=true;
+  b.textContent='AI 抓戰犯整理中…';
+
+  const selectedList = (m.att || []).filter(a => a.selected).map(a => a.n);
+  const attendeeLine = selectedList.length > 0 ? selectedList.join('、') : '未指定';
+  const recTimeStr = m.recCreatedAt || getFileDateTime().readable;
+
+  try{
+    const p=`請以${$('#l2').value}為我撰寫一份條理分明的專業會議紀錄（若選擇台語口吻，請使用道地生動且帶點幽默感的台灣閩南語漢字撰寫，保留專業結構但語氣貼近台灣職場實況）。\n`+
+      `會議主題：${m.title||'未命名會議'}\n`+
+      `會議時間：${tf(m.time)}\n`+
+      `錄音建檔時間：${recTimeStr}\n`+
+      `出席人員：${attendeeLine}\n\n`+
+      `嚴格要求：\n`+
+      `1. 僅根據下方「會議逐字稿」的真實內容進行摘要、決議事項與待辦清單（Action Items）整理，並明確標出每項待辦事項的「負責苦主／執行人」（若逐字稿有提及具體人名或職稱請務必點名寫出，沒提及則標註「待指派」）。\n`+
+      `2. 絕對不可以憑空編造或加入任何逐字稿中未提及的人名、事件或額外內容。\n`+
+      `3. 若出席人員為「未指定」，請如實寫「未指定」。\n`+
+      `4. 輸出為純文字格式（勿使用 Markdown 的 ** 粗體符號或 # 標題符號），確保寄送 Email 或複製貼上時版面乾淨整齊。\n\n`+
+      `會議逐字稿：\n${m.tx}`;
+
     const payload = {
       action: 'generate',
       transcript: p,
@@ -613,4 +986,141 @@ $('#inv').onclick=()=>{
 
     const resp = await fetch(GAS_URL, {
       method: 'POST',
-// ... existing code ... -->
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+
+    let outText = data.minutes || '';
+    if(!outText.includes('錄音建檔時間')){
+      outText = `錄音建檔時間：${recTimeStr}\n` + outText;
+    }
+
+    m.min = outText;
+    $('#mn').value = m.min;
+    save();
+    toast('甩鍋生死簿已煉成！');
+  }catch(e){
+    console.error(e);
+    toast('整理失敗：' + e.message);
+  }finally{
+    b.disabled=false;
+    b.textContent='煉成甩鍋生死簿（AI 抓戰犯）';
+  }
+};
+
+$('#snd').onclick=async ()=>{
+  const m=cur(),to=getValidRecipients();
+  if(!to.length)return toast('請至少選擇或輸入一位鍋子空投對象');
+  if(!m.min.trim())return toast('請先煉成或輸入會議紀錄內容');
+  const b=$('#snd');
+  b.disabled=true;
+  b.textContent='發送抓交替通知書中…';
+  try{
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'send',
+        recipients: to.join(','),
+        subject: `【會議鐵證紀錄】${m.title||'未命名會議'} (${tf(m.time)})`,
+        body: m.min
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    toast(`已成功發送抓交替通知書給 ${to.length} 位苦主！`);
+  }catch(e){
+    console.error(e);
+    toast('發送失敗：' + e.message);
+  }finally{
+    b.disabled=false;
+    b.textContent='發送抓交替通知書';
+  }
+};
+
+$('#dlm').onclick=()=>{
+  const m=cur();
+  if(!m.min.trim() && !m.tx.trim()) return toast('目前沒有可儲存的內容');
+  const titleStr = (m.title || '未命名會議').replace(/[\\/:*?"<>|]/g, '_');
+  const dt = getFileDateTime();
+  const recTimeStr = m.recCreatedAt || dt.readable;
+  const content = [
+    `【隨緣聽力｜甩鍋必備版 完整存證紀錄】`,
+    `會議主題：${m.title || '未命名會議'}`,
+    `會議時間：${tf(m.time)}`,
+    `建檔時間：${recTimeStr}`,
+    `鍋子空投名單：${getValidRecipients().join(', ') || '無'}`,
+    `========================================`,
+    `【甩鍋生死簿（AI 會議紀錄）】`,
+    m.min.trim() || '（尚未產出摘要）',
+    `\n========================================`,
+    `【原始對話逐字稿（含時間戳記）】`,
+    m.tx.trim() || '（無逐字稿）'
+  ].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' }));
+  a.download = `${titleStr}_保命護身符_${dt.fileTag}.txt`;
+  a.click();
+  toast('保命護身符已下載！');
+};
+
+$('#cp').onclick=()=>{
+  const val = $('#mn').value;
+  if(!val) return toast('沒有可複製的內容');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(val).then(()=>toast('已複製到剪貼簿，快貼去群組公審！')).catch(()=>{
+      $('#mn').select();
+      document.execCommand('copy');
+      toast('已複製到剪貼簿');
+    });
+  } else {
+    $('#mn').select();
+    document.execCommand('copy');
+    toast('已複製到剪貼簿');
+  }
+};
+
+$('#cx').onclick=()=>{
+  cur().tx='';
+  committed='';
+  $('#tx').value='';
+  updateWordCount();
+  save();
+  toast('已清除對話逐字稿');
+};
+
+$('#cmn').onclick=()=>{
+  cur().min='';
+  $('#mn').value='';
+  save();
+  toast('已清除會議紀錄');
+};
+
+function theme(t){
+  document.documentElement.dataset.theme=t;
+  W('mpt',t);
+  $('#th').textContent=t=='dark'?'切換為日間':'切換為夜間';
+}
+theme(document.documentElement.dataset.theme||'dark');
+$('#th').onclick=()=>theme(document.documentElement.dataset.theme=='dark'?'light':'dark');
+
+(()=>{
+  let r=7,n=()=>((r=(r*16807)%2147483647)-1)/2147483646,s=[];
+  for(let i=0;i<160;i++)s.push(`${(n()*100).toFixed(2)}vw ${(n()*58).toFixed(2)}vh 0 ${(n()>.85?.7:0)}px rgba(232,228,218,${(.18+n()*.65).toFixed(2)})`);
+  $('#stars').style.boxShadow=s.join(',');
+  let g='';
+  for(let i=0;i<30;i++){
+    const w=26+Math.round(n()*44),h=24+Math.round(n()*116),x=i*54-10,y=160-h;
+    g+=`<rect class="b" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+    for(let wy=y+8;wy<150;wy+=9)for(let wx=x+6;wx<x+w-6;wx+=9)if(n()>.78)g+=`<rect class="w" x="${wx}" y="${wy}" width="2" height="3" fill="#e3a04c" opacity="${(.12+n()*.35).toFixed(2)}"/>`;
+  }
+  $('#sky').innerHTML=g;
+})();
+
+load();
+</script>
+</body>
+</html>
