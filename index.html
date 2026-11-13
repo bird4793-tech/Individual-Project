@@ -204,7 +204,6 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <div class="evid" id="evid">
       <audio id="aud" controls></audio>
-      <button class="btn" id="aitx" type="button">✨ 重新聽寫</button>
       <a class="btn main" id="dla" download="錄音鐵證.webm">下載錄音鐵證</a>
     </div>
     <textarea id="tx" placeholder="或是貼上大家剛剛死不承認的對話內容…"></textarea>
@@ -626,8 +625,6 @@ async function transcribeAudioWithGemini(blob, options = {}){
 
   const btn = $('#aitx');
   const dz = $('#dz');
-  const origText = btn ? btn.textContent : '✨ 重新聽寫';
-  if(btn){ btn.disabled = true; btn.textContent = 'AI 聽寫中…'; }
   if(dz) dz.style.opacity = '0.6';
 
   const isLargeFile = blob.size > 15 * 1024 * 1024;
@@ -717,7 +714,6 @@ async function transcribeAudioWithGemini(blob, options = {}){
     if(uploadedFileName){
       fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(apiKey)}`, { method: 'DELETE' }).catch(()=>{});
     }
-    if(btn){ btn.disabled = false; btn.textContent = origText; }
     if(dz) dz.style.opacity = '1';
   }
 }
@@ -760,11 +756,6 @@ if(dz && upf){
     if(file) handleExternalAudioFile(file);
   };
 }
-
-$('#aitx').onclick=()=>{
-  if(!lastAudioBlob) return toast('目前沒有可聽寫的音檔，請先錄音或上傳錄音檔');
-  transcribeAudioWithGemini(lastAudioBlob, { replaceExisting: true });
-};
 
 function setSt(on,t,h){
   $('#rb').classList.toggle('on',on);
@@ -824,16 +815,7 @@ $('#rb').onclick=async ()=>{
         save();
         dla.download = `${titleStr}_錄音鐵證_${dt.fileTag}.${ext}`;
         $('#evid').classList.add('on');
-
-        const textAfterRec = ($('#tx').value || '').trim();
-        const gotNothing = (textAfterRec.length <= textBeforeRec.length);
-        const hasKey = Boolean(getCleanApiKey());
-
-        if((isTaiwaneseMode && hasKey) || (gotNothing && hasKey)){
-          transcribeAudioWithGemini(blob, { replaceExisting: (textBeforeRec === '') });
-        } else {
-          toast(`原始錄音鐵證已生成（${dt.readable}），可試聽、下載或點「✨ 重新聽寫」！`);
-        }
+        toast(`原始錄音鐵證已生成（${dt.readable}），可試聽或下載保存！`);
       };
       mRec.start();
     }catch(err){
@@ -928,7 +910,7 @@ $('#rb').onclick=async ()=>{
           try{ rec.stop(); }catch(err){ createAndStartRecognizer(); }
         }
       }
-    }, 3000);
+    }, 2000);
     setSt(true, isTaiwaneseMode ? '台語雙軌收音中（停止後自動 AI 原音辨識）' : '收音中', '再按一次圓鈕停止收音並生成音檔');
   }catch(e){
     recording = false;
