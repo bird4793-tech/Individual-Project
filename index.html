@@ -561,8 +561,20 @@ function blobToBase64(blob){
   });
 }
 
+function getSafeAudioMime(blob, fileName){
+  const raw = ((blob && blob.type) || '').split(';')[0].trim().toLowerCase();
+  if(raw && raw !== 'application/octet-stream' && raw !== 'audio/x-m4a') return raw;
+  const name = (fileName || '').toLowerCase();
+  if(name.endsWith('.m4a') || name.endsWith('.mp4')) return 'audio/mp4';
+  if(name.endsWith('.mp3')) return 'audio/mp3';
+  if(name.endsWith('.wav')) return 'audio/wav';
+  if(name.endsWith('.ogg')) return 'audio/ogg';
+  if(name.endsWith('.aac')) return 'audio/aac';
+  return 'audio/webm';
+}
+
 async function uploadLargeAudioViaFilesAPI(blob, apiKey, displayName){
-  const mimeType = blob.type || 'audio/webm';
+  const mimeType = getSafeAudioMime(blob, displayName);
   const numBytes = blob.size;
   const startRes = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
@@ -577,7 +589,7 @@ async function uploadLargeAudioViaFilesAPI(blob, apiKey, displayName){
   });
   if(!startRes.ok){
     const errTxt = await startRes.text();
-    throw new Error(`Files API 啟動失敗 (${startRes.status}): ${errTxt}`);
+    throw new Error(`無法啟動大檔案串流上傳 (${startRes.status}): ${errTxt}`);
   }
   const uploadUrl = startRes.headers.get('X-Goog-Upload-URL');
   if(!uploadUrl) throw new Error('無法取得 Google 雲端串流上傳網址');
@@ -657,7 +669,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
     // 通道 A：未填右上角 API Key 時，自動走 GAS 後台藏好的預設金鑰（手機族免設定直接用！）
     if(!apiKey){
       const base64Audio = await blobToBase64(blob);
-      const mimeType = (blob.type || 'audio/webm').split(';')[0];
+      const mimeType = getSafeAudioMime(blob, fileName);
       const gasResp = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -674,14 +686,14 @@ async function transcribeAudioWithGemini(blob, options = {}){
     } else {
       // 通道 B：有填右上角個人 API Key 時，走直連 / 大檔案串流通道
       let mediaPart = null;
+      const safeMime = getSafeAudioMime(blob, fileName);
       if(isLargeFile){
         const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
         uploadedFileName = fileObj.name;
-        mediaPart = { file_data: { mime_type: fileObj.mimeType || blob.type || 'audio/webm', file_uri: fileObj.uri } };
+        mediaPart = { file_data: { mime_type: fileObj.mimeType || safeMime, file_uri: fileObj.uri } };
       } else {
         const base64Audio = await blobToBase64(blob);
-        const mimeType = (blob.type || 'audio/webm').split(';')[0];
-        mediaPart = { inline_data: { mime_type: mimeType, data: base64Audio } };
+        mediaPart = { inline_data: { mime_type: safeMime, data: base64Audio } };
       }
 
       const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
