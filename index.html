@@ -671,7 +671,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
   }
 
   toast(!apiKey
-    ? '📱 正在透過雲端後台啟動 AI 原音聽寫（免填金鑰），請稍候…'
+    ? '📱 正在透過雲端後台啟動 AI 原音聽寫，請稍候…'
     : (isLargeFile
       ? `📦 偵測到超長錄音檔（${(blob.size/1024/1024).toFixed(1)} MB），正在串流上傳並由 AI 聽寫中，請稍候…`
       : '🎙️ 正在啟動 Gemini AI 原音聽寫中，請稍候…'));
