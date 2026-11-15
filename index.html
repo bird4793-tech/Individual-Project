@@ -119,38 +119,21 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 :root[data-theme=light] #sky .w{display:none}
 #toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,16px);background:var(--pop);border:1px solid var(--line2);padding:10px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:90vw}
 #toast.on{opacity:1;transform:translate(-50%,0)}
+#island{position:fixed;top:14px;left:50%;transform:translate(-50%,-80px);background:#11131a;color:#f5f2eb;border:1px solid rgba(227,160,76,.45);border-radius:999px;padding:8px 18px;display:flex;align-items:center;gap:10px;font-size:13px;letter-spacing:.08em;box-shadow:0 10px 28px rgba(0,0,0,.45);z-index:30;transition:.3s cubic-bezier(.22,1,.36,1);cursor:pointer;white-space:nowrap}
+#island.on{transform:translate(-50%,0)}
+#island .dot{width:9px;height:9px;border-radius:50%;background:#ff4d4f;box-shadow:0 0 0 0 rgba(255,77,79,.7);animation:recPulse 1.5s infinite}
+#island b{font-weight:500;color:var(--amber);font-variant-numeric:tabular-nums}
+@keyframes recPulse{0%{box-shadow:0 0 0 0 rgba(255,77,79,.7)}70%{box-shadow:0 0 0 8px rgba(255,77,79,0)}100%{box-shadow:0 0 0 0 rgba(255,77,79,0)}}
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px;z-index:40}
+.modal-mask.on{display:flex}
+.modal-card{background:var(--pop);color:var(--ink);border:1px solid var(--line2);border-radius:16px;padding:24px 22px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.5);text-align:center}
+.modal-card h3{font:400 19px var(--serif);letter-spacing:.14em;margin-bottom:8px}
+.modal-card p{font-size:14px;color:var(--dim);line-height:1.6;margin-bottom:18px;word-break:break-all}
+.modal-btns{display:flex;gap:10px}
+.modal-btns .btn{min-height:44px;padding:10px 14px;font-size:15px}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}header{flex-direction:column}.hr{width:100%}#key{flex:1;width:auto;max-width:none}.hero{padding:56px 0 44px}.evid{flex-direction:column;align-items:stretch}}
-@media(max-width:600px){
-  body{font-size:16px;line-height:1.75}
-  .wrap{padding:22px 16px 0}
-  h1{font-size:28px;letter-spacing:.18em}
-  .sub{font-size:13px;letter-spacing:.06em}
-  .hr{gap:12px}
-  .hero{padding:36px 0 32px}
-  .hero p{font-size:13px;letter-spacing:.18em}
-  #cd{font-size:clamp(44px,13vw,64px)}
-  #cd u{font-size:16px;margin:0 .35em 0 .1em}
-  section{padding:22px 0 26px}
-  :root[data-theme=light] section{padding:20px 16px 24px;border-radius:12px}
-  h2{font-size:18px;letter-spacing:.12em;margin-bottom:16px}
-  input,textarea,select{font-size:16px !important;min-width:0}
-  .row{gap:10px}
-  .row>.sm{flex:0 0 82px}
-  .sel{flex-direction:column;gap:14px}
-  .rec{gap:14px}
-  .rb{width:64px;height:64px}
-  .rec b{font-size:16px;letter-spacing:.1em}
-  .rec small{font-size:13px;display:block;line-height:1.45}
-  .dropzone{padding:16px 12px}
-  .dropzone b{font-size:14px}
-  #tx{height:210px}
-  #mn{height:240px}
-  .sendrow{flex-direction:column;gap:10px}
-  .sendrow .btn,.btn{min-height:48px;font-size:15px;padding:12px 16px}
-  .chips span{padding:6px 12px 6px 14px;font-size:14px}
-  #toast{bottom:18px;font-size:13px;padding:10px 16px;border-radius:14px;text-align:center}
-}
+@media(max-width:640px){.wrap{padding:24px 16px 0}h1{font-size:28px;letter-spacing:.2em}.row{flex-wrap:wrap;gap:12px}.row>*{min-width:0}.sel{flex-direction:column;gap:12px}.sendrow{flex-direction:column}.btn{min-height:48px}input,textarea,select{font-size:16px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -292,6 +275,17 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 </div>
 
 <footer><svg id="sky" viewBox="0 0 1600 160" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg></footer>
+<div id="island" role="button" tabindex="0" title="點擊停止錄音"><span class="dot"></span><span>錄音蒐證中</span><b id="isl-tm">00:00</b></div>
+<div class="modal-mask" id="dlModal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h3>🎙️ 錄音鐵證已生成</h3>
+    <p id="dlModalInfo">是否立即將本次錄音檔下載保存至手機？</p>
+    <div class="modal-btns">
+      <button type="button" class="btn" id="dlModalNo" style="flex:1">暫時不用</button>
+      <a class="btn main" id="dlModalYes" style="flex:1.3;text-decoration:none;display:inline-flex;align-items:center;justify-content:center">立即下載保存</a>
+    </div>
+  </div>
+</div>
 <div id="toast" role="status"></div>
 
 <script>
@@ -365,11 +359,20 @@ function updateWordCount(){
 function startRecTimer(){
   recSec = 0;
   $('#rtm').textContent = '00:00';
+  if($('#isl-tm')) $('#isl-tm').textContent = '00:00';
+  if($('#island')) $('#island').classList.add('on');
   clearInterval(recTimer);
   recTimer = setInterval(()=>{
     recSec++;
-    $('#rtm').textContent = `${pad(Math.floor(recSec/60))}:${pad(recSec%60)}`;
+    const formatted = `${pad(Math.floor(recSec/60))}:${pad(recSec%60)}`;
+    $('#rtm').textContent = formatted;
+    if($('#isl-tm')) $('#isl-tm').textContent = formatted;
   }, 1000);
+}
+
+function stopRecTimer(){
+  clearInterval(recTimer);
+  if($('#island')) $('#island').classList.remove('on');
 }
 
 function stopRecTimer(){
@@ -842,13 +845,26 @@ function stopEvidenceRec(){
   }
 }
 
+const isInAppBrowser = () => /Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent || '');
+const isIOSDevice = () => /iPad|iPhone|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+if($('#island')) $('#island').onclick = () => { if(recording) $('#rb').click(); };
+if($('#dlModalNo')) $('#dlModalNo').onclick = () => $('#dlModal').classList.remove('on');
+if($('#dlModalYes')) $('#dlModalYes').onclick = () => {
+  $('#dlModal').classList.remove('on');
+  toast('已開始下載錄音鐵證至手機！');
+};
+
 $('#rb').onclick=async ()=>{
+  if(isInAppBrowser()){
+    return toast('⚠️ 請點選右下／右上角「用預設瀏覽器（Safari / Chrome）開啟」才能使用麥克風喔！');
+  }
+
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR)return toast('這個瀏覽器不支援語音辨識，請使用 Chrome 瀏覽器');
   if(recording){
     recording=false;
     clearInterval(keepAliveTimer);
-    if(rec){ try{ rec.stop(); }catch(e){} }
+    if(rec){ try{ rec.stop(); }catch(e){} rec = null; }
     stopEvidenceRec();
     setSt(false,'待命中','按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
     return;
@@ -857,7 +873,10 @@ $('#rb').onclick=async ()=>{
   syncApiKeyInput();
   const selLang = $('#l1').value;
   const isTaiwaneseMode = (selLang === 'nan-TW');
+  const iosMode = isIOSDevice();
+  let audioStarted = false;
 
+  // 1. 優先啟動獨立背景音檔錄製（與即時語音辨識徹底解耦，絕不因 40 秒休眠而中斷）
   if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
     try{
       mStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -879,23 +898,47 @@ $('#rb').onclick=async ()=>{
         const dt = getFileDateTime();
         cur().recCreatedAt = dt.readable;
         save();
-        dla.download = `${titleStr}_錄音鐵證_${dt.fileTag}.${ext}`;
+        const finalFileName = `${titleStr}_錄音鐵證_${dt.fileTag}.${ext}`;
+        dla.download = finalFileName;
         $('#evid').classList.add('on');
-        toast(`原始錄音鐵證已生成（${dt.readable}），可試聽或下載保存！`);
+
+        // 彈出確認是否立即下載保存至手機的視窗
+        const sizeKB = Math.max(1, Math.round(blob.size / 1024));
+        const sizeLabel = sizeKB > 1024 ? `${(sizeKB/1024).toFixed(1)} MB` : `${sizeKB} KB`;
+        $('#dlModalInfo').textContent = `檔案：${finalFileName}（${sizeLabel}）\n是否立即下載保存至手機？`;
+        const yesBtn = $('#dlModalYes');
+        yesBtn.href = audioUrl;
+        yesBtn.download = finalFileName;
+        $('#dlModal').classList.add('on');
+
+        // 若為 iOS 單通道模式或沒有即時逐字稿，自動啟動 AI 原音聽寫
+        if(iosMode || !$('#tx').value.trim()){
+          transcribeAudioWithGemini(blob, { replaceExisting: !$('#tx').value.trim(), fileName: finalFileName });
+        }
       };
-      mRec.start();
+      mRec.start(1000);
+      audioStarted = true;
     }catch(err){
-      console.warn('背景音檔錄製未啟動:', err);
+      console.warn('麥克風啟動失敗:', err);
+      if(!SR){
+        return toast('⚠️ 無法存取麥克風，請確認手機設定已允許瀏覽器使用麥克風');
+      }
     }
+  }
+
+  if(!audioStarted && !SR){
+    return toast('這個瀏覽器不支援錄音功能，請改用 Safari 或 Chrome 瀏覽器');
   }
 
   committed = $('#tx').value;
   $('#evid').classList.remove('on');
   let lastResultAt = Date.now();
   let sessionStartedAt = Date.now();
+  let srFailed = false;
 
+  // 2. 非 iOS 裝置才同時啟動即時語音辨識（避免 iOS 雙開搶麥克風導致失效）
   function createAndStartRecognizer(){
-    if(!recording) return;
+    if(!recording || !SR || iosMode || srFailed) return;
     const r = new SR();
     r.lang = (selLang === 'auto' || isTaiwaneseMode) ? 'zh-TW' : selLang;
     r.continuous = true;
@@ -926,11 +969,14 @@ $('#rb').onclick=async ()=>{
     };
 
     r.onerror = e => {
-      if(e.error=='not-allowed'||e.error=='service-not-allowed'){
-        recording=false;
-        stopEvidenceRec();
-        setSt(false,'待命中','按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
-        toast('麥克風未授權，請在網址列允許存取麥克風');
+      if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+        srFailed = true;
+        if(!audioStarted){
+          recording = false;
+          stopEvidenceRec();
+          setSt(false,'待命中','按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
+          toast('麥克風未授權，請在瀏覽器設定允許存取麥克風');
+        }
       }
     };
 
@@ -944,9 +990,10 @@ $('#rb').onclick=async ()=>{
         updateWordCount();
         save();
       }
-      if(recording){
-        setTimeout(()=>{ if(recording) createAndStartRecognizer(); }, 180);
-      } else {
+      // 關鍵修復：即便即時辨識重啟失敗，也絕對不關掉背景錄音 (audioStarted)，讓錄音持續進行！
+      if(recording && !srFailed){
+        setTimeout(()=>{ if(recording && !srFailed) createAndStartRecognizer(); }, 250);
+      } else if(!recording) {
         stopEvidenceRec();
         setSt(false,'待命中','按下圓鈕開始講話，自動標記時間戳記並同步錄製音檔');
       }
@@ -957,31 +1004,41 @@ $('#rb').onclick=async ()=>{
     try{
       r.start();
     }catch(err){
-      setTimeout(()=>{ if(recording) createAndStartRecognizer(); }, 400);
+      if(recording && !srFailed){
+        setTimeout(()=>{ if(recording && !srFailed) createAndStartRecognizer(); }, 500);
+      }
     }
   }
 
   try{
     recording = true;
-    createAndStartRecognizer();
     startRecTimer();
-    clearInterval(keepAliveTimer);
-    keepAliveTimer = setInterval(()=>{
-      if(!recording) return;
-      const now = Date.now();
-      if((now - sessionStartedAt > 12000) || (now - lastResultAt > 7000 && now - sessionStartedAt > 7000)){
-        lastResultAt = now;
-        sessionStartedAt = now;
-        if(rec){
-          try{ rec.stop(); }catch(err){ createAndStartRecognizer(); }
+    if(SR && !iosMode){
+      createAndStartRecognizer();
+      clearInterval(keepAliveTimer);
+      keepAliveTimer = setInterval(()=>{
+        if(!recording || srFailed) return;
+        const now = Date.now();
+        if((now - sessionStartedAt > 15000) || (now - lastResultAt > 9000 && now - sessionStartedAt > 9000)){
+          lastResultAt = now;
+          sessionStartedAt = now;
+          if(rec){
+            try{ rec.stop(); }catch(err){ createAndStartRecognizer(); }
+          }
         }
-      }
-    }, 2000);
-    setSt(true, isTaiwaneseMode ? '台語雙軌收音中' : '收音中', '再按一次圓鈕停止收音並生成音檔');
+      }, 2500);
+    }
+    setSt(
+      true,
+      iosMode ? 'iPhone 隱密錄音中（停止後自動 AI 聽寫）' : (isTaiwaneseMode ? '台語雙軌收音中' : '錄音蒐證中'),
+      '再按一次圓鈕或頂部動態膠囊即可停止錄音'
+    );
   }catch(e){
-    recording = false;
-    stopEvidenceRec();
-    toast('無法啟動麥克風收音');
+    if(!audioStarted){
+      recording = false;
+      stopEvidenceRec();
+      toast('無法啟動麥克風收音');
+    }
   }
 };
 
