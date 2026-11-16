@@ -938,55 +938,81 @@ async function transcribeAudioWithGemini(blob, options = {}){
         mediaPart = { inline_data: { mime_type: safeMime, data: base64Audio } };
       }
 
-      // 優先使用最穩定、不會把 Token 耗在隱藏思考的 gemini-2.0-flash，並設定全模型相容的 8192 上限
-      const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+      // 第一層：優先使用支援 65536 超長輸出的 gemini-2.5-flash（關閉思考消耗），若退回 2.0-flash 則自動降為 8192
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
       let lastErr = '';
 
-      for(const model of models){
-        try{
-          const genCfg = {
-            temperature: 0.1,
-            maxOutputTokens: 8192
-          };
-          if(model.includes('2.5')){
-            genCfg.thinkingConfig = { thinkingBudget: 0 };
+      async function requestSegment(promptToUse){
+        for(const model of models){
+          try{
+            const is25 = model.includes('2.5');
+            const genCfg = {
+              temperature: 0.1,
+              maxOutputTokens: is25 ? 65536 : 8192
+            };
+            if(is25){
+              genCfg.thinkingConfig = { thinkingBudget: 0 };
+            }
+            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal,
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: promptToUse },
+                    mediaPart
+                  ]
+                }],
+                generationConfig: genCfg
+              })
+            });
+            const data = await resp.json();
+            if(!resp.ok){
+              lastErr = data?.error?.message || `HTTP ${resp.status}`;
+              continue;
+            }
+            const cand = data?.candidates?.[0];
+            const parts = cand?.content?.parts || [];
+            let segText = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
+            if(!segText && parts.length){
+              segText = parts.map(p => p.text || '').join('').trim();
+            }
+            if(segText){
+              return { text: segText, finishReason: cand?.finishReason || 'STOP' };
+            }
+            lastErr = cand?.finishReason ? `模型未輸出文字 (原因: ${cand.finishReason})` : 'AI 回傳空白內容';
+          }catch(err){
+            if(signal.aborted) throw err;
+            lastErr = err.message;
           }
-          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal,
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: promptText },
-                  mediaPart
-                ]
-              }],
-              generationConfig: genCfg
-            })
-          });
-          const data = await resp.json();
-          if(!resp.ok){
-            lastErr = data?.error?.message || `HTTP ${resp.status}`;
-            continue;
-          }
-          const cand = data?.candidates?.[0];
-          const parts = cand?.content?.parts || [];
-          transcript = parts.filter(p => !p.thought).map(p => p.text || '').join('').trim();
-          if(!transcript && parts.length){
-            transcript = parts.map(p => p.text || '').join('').trim();
-          }
-          if(cand?.finishReason === 'MAX_TOKENS') isTruncatedByToken = true;
-          if(transcript) break;
-          lastErr = cand?.finishReason ? `模型未輸出文字 (原因: ${cand.finishReason})` : 'AI 回傳空白內容';
-        }catch(err){
-          if(signal.aborted) throw err;
-          lastErr = err.message;
         }
+        return null;
       }
 
-      if(!transcript){
+      // 執行第一棒聽寫（最多可達 65,536 tokens，約 9 萬～10 萬中文字）
+      const firstSeg = await requestSegment(promptText);
+      if(!firstSeg || !firstSeg.text){
         throw new Error(lastErr || 'AI 未回傳任何文字');
+      }
+      transcript = firstSeg.text;
+      isTruncatedByToken = (firstSeg.finishReason === 'MAX_TOKENS');
+
+      // 第二層：超長音檔「自動接力續寫」機制（若回傳 MAX_TOKENS，自動抓最後時間戳記接力跑第 2 棒、第 3 棒）
+      let relayCount = 0;
+      while(isTruncatedByToken && relayCount < 3){
+        relayCount++;
+        const allStamps = transcript.match(/\[(?:\d{1,2}:)?\d{2}:\d{2}\]/g);
+        const lastStamp = allStamps && allStamps.length ? allStamps[allStamps.length - 1] : '';
+        if(!lastStamp) break;
+        updateProgressUI(`🔄 會議內容極長，AI 正在自動接力聽寫第 ${relayCount + 1} 棒（從 ${lastStamp} 繼續）…`, Math.min(95, 70 + relayCount * 8));
+        const contPrompt =
+          `${promptText}\n\n` +
+          `【重要接力指令】：前一段逐字稿已經聽寫到時間點 ${lastStamp}。請直接從音檔的 ${lastStamp} 之後繼續往後聽寫直到音檔結束，嚴禁重複 ${lastStamp} 之前的內容！`;
+        const nextSeg = await requestSegment(contPrompt);
+        if(!nextSeg || !nextSeg.text) break;
+        transcript += '\n' + nextSeg.text;
+        isTruncatedByToken = (nextSeg.finishReason === 'MAX_TOKENS');
       }
     }
 
