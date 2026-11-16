@@ -85,6 +85,14 @@ label,.lb{display:block;color:var(--dim);font-size:14px;letter-spacing:.1em;marg
 .dropzone b{display:block;font-size:15px;font-weight:400;color:var(--ink);letter-spacing:.08em}
 .dropzone small{display:block;font-size:13px;color:var(--dim);margin-top:2px;letter-spacing:.04em}
 
+.pbox{display:none;margin-bottom:16px;padding:12px 16px;border:1px solid var(--amber);border-radius:10px;background:color-mix(in srgb,var(--amber) 8%,transparent)}
+.pbox.on{display:block}
+.pbox-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;letter-spacing:.06em}
+.pbox-top span{color:var(--ink)}
+.pbox-top b{color:var(--amber);font-variant-numeric:tabular-nums}
+.pbar-bg{width:100%;height:7px;background:var(--line);border-radius:999px;overflow:hidden}
+.pbar-fill{height:100%;width:0%;background:var(--amber);border-radius:999px;transition:width .35s ease}
+
 .evid{display:none;align-items:center;gap:10px;margin-bottom:16px;padding:10px 14px;border:1px solid var(--amber);border-radius:10px;background:color-mix(in srgb,var(--amber) 8%,transparent);flex-wrap:wrap}
 .evid.on{display:flex}
 .evid audio{flex:1;min-width:180px;height:34px;outline:none}
@@ -206,9 +214,17 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
 
     <div class="dropzone" id="dz" role="button" tabindex="0">
-      <b>📂 點擊或拖曳錄音檔至此，AI 直接聽寫成逐字稿</b>
-      <small>支援 mp3 / m4a / wav / webm / ogg（上限最大 2GB）</small>
+      <b>📂 點擊或拖曳錄音檔至此，AI 直接聽寫成逐字稿（自動標註【甲】【乙】發言者）</b>
+      <small>支援 mp3 / m4a / wav / webm / ogg（單檔時長上限 3 小時，最大 2GB）</small>
       <input type="file" id="upf" accept="audio/*" style="display:none">
+    </div>
+
+    <div class="pbox" id="pbox" role="status" aria-live="polite">
+      <div class="pbox-top">
+        <span id="ptxt">🎙️ 正在啟動 AI 語音聽寫與聲紋分析…</span>
+        <b id="ppct">0%</b>
+      </div>
+      <div class="pbar-bg"><div class="pbar-fill" id="pfill"></div></div>
     </div>
 
     <div class="rec-meta">
@@ -265,9 +281,10 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
     </div>
     <textarea id="mn" placeholder="AI 正在幫你把廢話濃縮成『誰該負責』的致命鐵證，請稍候…"></textarea>
     <div class="sendrow">
-      <button class="btn" id="snd" style="flex:2">發送抓交替通知書</button>
-      <button class="btn" id="dlm" style="flex:1">存成保命護身符</button>
-      <button class="btn" id="cp" style="flex:1">複製貼去群組公審</button>
+      <button class="btn" id="snd" style="flex:1.4">發送抓交替通知書</button>
+      <button class="btn" id="dlw" style="flex:1">匯出 Word</button>
+      <button class="btn" id="dlp" style="flex:1">匯出 PDF</button>
+      <button class="btn" id="cp" style="flex:1.4">複製貼去群組公審</button>
     </div>
   </section>
 </div>
@@ -373,10 +390,6 @@ function startRecTimer(){
 function stopRecTimer(){
   clearInterval(recTimer);
   if($('#island')) $('#island').classList.remove('on');
-}
-
-function stopRecTimer(){
-  clearInterval(recTimer);
 }
 
 function nowStamp(){
@@ -606,6 +619,67 @@ function getSafeAudioMime(blob, fileName){
   return 'audio/webm';
 }
 
+function getAudioDurationSec(blob){
+  return new Promise(resolve => {
+    const tempAud = document.createElement('audio');
+    const url = URL.createObjectURL(blob);
+    tempAud.preload = 'metadata';
+    const done = sec => {
+      URL.revokeObjectURL(url);
+      resolve(Number.isFinite(sec) && sec > 0 ? sec : 0);
+    };
+    tempAud.onloadedmetadata = () => done(tempAud.duration);
+    tempAud.onerror = () => done(0);
+    setTimeout(() => done(0), 4000);
+    tempAud.src = url;
+  });
+}
+
+let progTimer = null;
+function startProgressUI(initialText, estSeconds = 25){
+  const pbox = $('#pbox'), ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
+  if(!pbox) return;
+  clearInterval(progTimer);
+  pbox.classList.add('on');
+  ptxt.textContent = initialText || '🎙️ AI 原音聽寫與發言者分析進行中…';
+  let pct = 3;
+  ppct.textContent = '3%';
+  pfill.style.width = '3%';
+  const stepMs = Math.max(300, Math.floor((estSeconds * 1000) / 88));
+  progTimer = setInterval(()=>{
+    if(pct < 92){
+      pct += (pct < 60 ? 2 : 1);
+      ppct.textContent = pct + '%';
+      pfill.style.width = pct + '%';
+    }
+  }, stepMs);
+}
+
+function updateProgressUI(text, pct){
+  const ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
+  if(text && ptxt) ptxt.textContent = text;
+  if(typeof pct === 'number' && ppct && pfill){
+    const v = Math.min(100, Math.max(0, Math.round(pct)));
+    ppct.textContent = v + '%';
+    pfill.style.width = v + '%';
+  }
+}
+
+function finishProgressUI(success = true, finalMsg = ''){
+  clearInterval(progTimer);
+  const pbox = $('#pbox'), ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
+  if(!pbox) return;
+  if(success){
+    if(ptxt) ptxt.textContent = finalMsg || '✅ 聽寫與發言者標記完成！';
+    if(ppct) ppct.textContent = '100%';
+    if(pfill) pfill.style.width = '100%';
+    setTimeout(()=> pbox.classList.remove('on'), 2600);
+  } else {
+    if(ptxt) ptxt.textContent = finalMsg || '⚠️ 聽寫中斷';
+    setTimeout(()=> pbox.classList.remove('on'), 3500);
+  }
+}
+
 async function uploadLargeAudioViaFilesAPI(blob, apiKey, displayName){
   const mimeType = getSafeAudioMime(blob, displayName);
   const numBytes = blob.size;
@@ -664,20 +738,34 @@ async function transcribeAudioWithGemini(blob, options = {}){
     return toast('音檔過短或沒有聲音，無法聽寫');
   }
 
+  // 檢查音檔長度是否超過 3 小時（10800 秒）上限
+  const durSec = await getAudioDurationSec(blob);
+  const MAX_SEC = 3 * 3600;
+  let overLimitWarning = false;
+  if(durSec > MAX_SEC){
+    overLimitWarning = true;
+    const hrs = (durSec / 3600).toFixed(1);
+    toast(`⚠️ 此音檔長達 ${hrs} 小時，已超過 3 小時上限！系統將僅處理前 3 小時內容，超出部分請分割後再上傳。`);
+  }
+
   const dz = $('#dz');
   if(dz) dz.style.opacity = '0.6';
 
   const isLargeFile = blob.size > 15 * 1024 * 1024;
   if(!apiKey && isLargeFile){
     if(dz) dz.style.opacity = '1';
-    return toast('⚠️ 超過 15MB 的超長錄音檔，請先在右上角填入 API Key 才能走雲端串流通道喔！');
+    return toast('⚠️ 超過 15MB 的長錄音檔，請先在右上角填入 API Key 才能走雲端串流通道喔！');
   }
 
-  toast(!apiKey
-    ? '📱 正在透過雲端後台啟動 AI 原音聽寫，請稍候…'
-    : (isLargeFile
-      ? `📦 偵測到超長錄音檔（${(blob.size/1024/1024).toFixed(1)} MB），正在串流上傳並由 AI 聽寫中，請稍候…`
-      : '🎙️ 正在啟動 Gemini AI 原音聽寫中，請稍候…'));
+  const estWait = durSec > 0 ? Math.min(120, Math.max(18, Math.round(durSec / 18))) : 25;
+  startProgressUI(
+    !apiKey
+      ? '📱 正在透過雲端後台啟動 AI 聽寫與【甲】【乙】聲紋辨識…'
+      : (isLargeFile
+        ? `📦 正在串流上傳長音檔（${(blob.size/1024/1024).toFixed(1)} MB）並進行聽寫…`
+        : '🎙️ 正在啟動 Gemini AI 原音聽寫與發言者標記…'),
+    estWait
+  );
 
   let uploadedFileName = '';
   try{
@@ -695,12 +783,24 @@ async function transcribeAudioWithGemini(blob, options = {}){
       langInstruction = '오디오를 정확한 한국어로 받아쓰기 해주세요.';
     }
 
-    const promptText = `你是一位專業且精通台灣語言的會議聽寫員。${langInstruction}\n請務必在每一句話開頭加上時間戳記格式，例如 [00:02] 講話內容（若超過一小時則用 [01:05:12]）。只輸出逐字稿本身，不要加任何開場白、說明或 Markdown 符號。若音檔完全無聲請回覆「（無清晰語音）」。`;
+    const durHint = durSec > 60 ? `（此音檔總長約 ${Math.floor(durSec/60)} 分 ${Math.round(durSec%60)} 秒，請務必從頭到尾完整聽寫至最後一秒，嚴禁只聽寫前幾分鐘就提前結束！）` : '（請務必從頭到尾完整聽寫至最後一秒，切勿中途截斷！）';
+
+    const promptText =
+      `你是一位專業且精通台灣語言與聲紋分辨的會議聽寫員。${langInstruction}${durHint}\n` +
+      `嚴格格式要求：\n` +
+      `1. 請根據音檔中的聲音特徵（音高、音色、語速）與對話上下文，自動辨別不同發言者，並在時間戳記後標註代號【甲】、【乙】、【丙】、【丁】（若只有一人說話則標註【甲】）。\n` +
+      `2. 每一句話開頭必須加上時間戳記與發言者代號，格式範例：\n` +
+      `[00:02] 【甲】：各位早安，今天我們先確認專案進度。\n` +
+      `[00:08] 【乙】：沒問題，我這邊已經把報表整理好了。\n` +
+      `3. 請務必完整輸出整段錄音的所有對話直到音檔結束（上限 3 小時），若超過 3 小時未處理完，請在文末明確註明「⚠️ 音檔超過 3 小時上限，後續內容未完全轉出」。\n` +
+      `4. 只輸出逐字稿本身，不要加任何開場白、說明或 Markdown 符號。若音檔完全無聲請回覆「（無清晰語音）」。`;
 
     let transcript = '';
+    let isTruncatedByToken = false;
 
-    // 通道 A：未填右上角 API Key 時，自動走 GAS 後台藏好的預設金鑰（手機族免設定直接用！）
+    // 通道 A：未填右上角 API Key 時，自動走 GAS 後台
     if(!apiKey){
+      updateProgressUI('☁️ 正在上傳音檔至雲端後台進行聲紋分析與完整聽寫…', 25);
       const base64Audio = await blobToBase64(blob);
       const mimeType = getSafeAudioMime(blob, fileName);
       const gasResp = await fetch(GAS_URL, {
@@ -716,20 +816,23 @@ async function transcribeAudioWithGemini(blob, options = {}){
       const gasData = await gasResp.json();
       if(gasData.error) throw new Error(gasData.error);
       transcript = (gasData.transcript || '').trim();
+      if(gasData.finishReason === 'MAX_TOKENS') isTruncatedByToken = true;
     } else {
       // 通道 B：有填右上角個人 API Key 時，走直連 / 大檔案串流通道
       let mediaPart = null;
       const safeMime = getSafeAudioMime(blob, fileName);
       if(isLargeFile){
+        updateProgressUI('📦 正在透過 Google Files API 串流上傳大檔案…', 20);
         const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
         uploadedFileName = fileObj.name;
         mediaPart = { file_data: { mime_type: fileObj.mimeType || safeMime, file_uri: fileObj.uri } };
+        updateProgressUI('🤖 音檔上傳完成，AI 正在完整聽寫並分辨【甲】【乙】聲紋…', 55);
       } else {
         const base64Audio = await blobToBase64(blob);
         mediaPart = { inline_data: { mime_type: safeMime, data: base64Audio } };
       }
 
-      const models = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
       let lastErr = '';
 
       for(const model of models){
@@ -743,7 +846,11 @@ async function transcribeAudioWithGemini(blob, options = {}){
                   { text: promptText },
                   mediaPart
                 ]
-              }]
+              }],
+              generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 65536
+              }
             })
           });
           const data = await resp.json();
@@ -751,7 +858,9 @@ async function transcribeAudioWithGemini(blob, options = {}){
             lastErr = data?.error?.message || `HTTP ${resp.status}`;
             continue;
           }
-          transcript = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+          const cand = data?.candidates?.[0];
+          transcript = (cand?.content?.parts || []).map(p => p.text || '').join('').trim();
+          if(cand?.finishReason === 'MAX_TOKENS') isTruncatedByToken = true;
           if(transcript) break;
         }catch(err){
           lastErr = err.message;
@@ -765,6 +874,10 @@ async function transcribeAudioWithGemini(blob, options = {}){
 
     if(!transcript) throw new Error('AI 未回傳任何文字');
 
+    if(overLimitWarning || isTruncatedByToken){
+      transcript += `\n\n⚠️【系統提示】：此音檔已達單次 3 小時（或單次最大輸出字數）上限，部分超出內容尚未轉出，建議將後續音檔分段上傳！`;
+    }
+
     const box = $('#tx');
     if(replaceExisting || !box.value.trim()){
       box.value = transcript + '\n';
@@ -776,9 +889,13 @@ async function transcribeAudioWithGemini(blob, options = {}){
     updateWordCount();
     save();
     box.scrollTop = box.scrollHeight;
-    toast('✨ AI 原音聽寫完成！已自動標記時間戳記（可點擊 [分:秒] 對質）');
+    finishProgressUI(true, '✅ 聽寫完成！已標記【甲】【乙】發言者與時間戳記');
+    toast(overLimitWarning || isTruncatedByToken
+      ? '⚠️ 聽寫完成，但音檔超出上限，未轉完部分已標註於逐字稿末尾！'
+      : '✨ AI 原音聽寫完成！已自動標記【甲】【乙】代號與時間戳記');
   }catch(err){
     console.error('Gemini Audio Transcribe Error:', err);
+    finishProgressUI(false, `⚠️ 聽寫失敗：${err.message}`);
     toast(`⚠️ AI 聽寫失敗：${err.message}`);
   }finally{
     if(uploadedFileName && apiKey){
@@ -1074,7 +1191,7 @@ $('#gen').onclick=async ()=>{
       `錄音建檔時間：${recTimeStr}\n`+
       `出席人員：${attendeeLine}\n\n`+
       `嚴格要求：\n`+
-      `1. 僅根據下方「會議逐字稿」的真實內容進行摘要、決議事項與待辦清單（Action Items）整理，並明確標出每項待辦事項的「負責苦主／執行人」（若逐字稿有提及具體人名或職稱請務必點名寫出，沒提及則標註「待指派」）。\n`+
+      `1. 僅根據下方「會議逐字稿」的真實內容進行摘要、決議事項與待辦清單（Action Items）整理，並明確標出每項待辦事項的「負責苦主／執行人」（若逐字稿有提及具體人名、職稱或發言者代號【甲】【乙】【丙】【丁】請務必點名寫出，沒提及則標註「待指派」）。\n`+
       `2. 絕對不可以憑空編造或加入任何逐字稿中未提及的人名、事件或額外內容。\n`+
       `3. 若出席人員為「未指定」，請如實寫「未指定」。\n`+
       `4. 輸出為純文字格式（勿使用 Markdown 的 ** 粗體符號或 # 標題符號），確保寄送 Email 或複製貼上時版面乾淨整齊。\n\n`+
@@ -1146,30 +1263,64 @@ $('#snd').onclick=async ()=>{
   }
 };
 
-$('#dlm').onclick=()=>{
+function buildExportHTML(m, recTimeStr){
+  const title = esc(m.title || '未命名會議');
+  const time = esc(tf(m.time));
+  const rcpts = esc(getValidRecipients().join(', ') || '無');
+  const minHtml = esc(m.min.trim() || '（尚未產出摘要）').replace(/\n/g, '<br>');
+  const txHtml = esc(m.tx.trim() || '（無逐字稿）').replace(/\n/g, '<br>');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} - 隨緣聽力存證紀錄</title>` +
+    `<style>body{font-family:"Microsoft JhengHei","PingFang TC",sans-serif;line-height:1.75;color:#16181d;padding:28px;max-width:820px;margin:0 auto}` +
+    `h1{font-size:22px;border-bottom:2px solid #b8620a;padding-bottom:8px;margin-bottom:14px}` +
+    `h2{font-size:17px;color:#b8620a;margin:24px 0 8px;border-left:4px solid #b8620a;padding-left:10px}` +
+    `.meta{background:#f6f7f9;padding:12px 16px;border-radius:8px;font-size:14px;margin-bottom:20px}` +
+    `.box{border:1px solid #d0d5dd;border-radius:8px;padding:14px 16px;font-size:14.5px;white-space:normal;word-break:break-word}</style></head><body>` +
+    `<h1>【隨緣聽力｜甩鍋必備版】完整會議存證紀錄</h1>` +
+    `<div class="meta"><b>會議主題：</b>${title}<br><b>會議時間：</b>${time}<br><b>建檔時間：</b>${esc(recTimeStr)}<br><b>鍋子空投名單：</b>${rcpts}</div>` +
+    `<h2>一、甩鍋生死簿（AI 會議紀錄與待辦戰犯）</h2><div class="box">${minHtml}</div>` +
+    `<h2>二、原始對話逐字稿（含時間戳記與【甲】【乙】代號）</h2><div class="box">${txHtml}</div>` +
+    `</body></html>`;
+}
+
+$('#dlw').onclick=()=>{
   const m=cur();
-  if(!m.min.trim() && !m.tx.trim()) return toast('目前沒有可儲存的內容');
+  if(!m.min.trim() && !m.tx.trim()) return toast('目前沒有可匯出的內容');
   const titleStr = (m.title || '未命名會議').replace(/[\\/:*?"<>|]/g, '_');
   const dt = getFileDateTime();
   const recTimeStr = m.recCreatedAt || dt.readable;
-  const content = [
-    `【隨緣聽力｜甩鍋必備版 完整存證紀錄】`,
-    `會議主題：${m.title || '未命名會議'}`,
-    `會議時間：${tf(m.time)}`,
-    `建檔時間：${recTimeStr}`,
-    `鍋子空投名單：${getValidRecipients().join(', ') || '無'}`,
-    `========================================`,
-    `【甩鍋生死簿（AI 會議紀錄）】`,
-    m.min.trim() || '（尚未產出摘要）',
-    `\n========================================`,
-    `【原始對話逐字稿（含時間戳記）】`,
-    m.tx.trim() || '（無逐字稿）'
-  ].join('\n');
+  const htmlDoc = buildExportHTML(m, recTimeStr);
+  const blob = new Blob(['\uFEFF', htmlDoc], { type: 'application/msword;charset=utf-8' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob(['\uFEFF' + content], { type: 'text/plain;charset=utf-8' }));
-  a.download = `${titleStr}_保命護身符_${dt.fileTag}.txt`;
+  a.href = URL.createObjectURL(blob);
+  a.download = `${titleStr}_會議存證_${dt.fileTag}.doc`;
   a.click();
-  toast('保命護身符已下載！');
+  toast('已匯出 Word (.doc) 檔案！');
+};
+
+$('#dlp').onclick=()=>{
+  const m=cur();
+  if(!m.min.trim() && !m.tx.trim()) return toast('目前沒有可匯出的內容');
+  const dt = getFileDateTime();
+  const recTimeStr = m.recCreatedAt || dt.readable;
+  const htmlDoc = buildExportHTML(m, recTimeStr);
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(htmlDoc);
+  doc.close();
+  toast('正在開啟 PDF 列印視窗（請在目標印表機選擇「另存為 PDF」）');
+  setTimeout(()=>{
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(()=> document.body.removeChild(iframe), 2000);
+  }, 350);
 };
 
 $('#cp').onclick=()=>{
