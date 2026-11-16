@@ -887,13 +887,24 @@ async function transcribeAudioWithGemini(blob, options = {}){
         if(gasData.error) throw new Error(gasData.error);
         return (gasData.transcript || gasData.text || '').trim();
       } else {
-        const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+        // 優先排入最順暢不塞車的 lite 與穩定模型，後方涵蓋 2.0 ~ 3.8 全系列備援
+        const models = [
+          'gemini-2.5-flash-lite',
+          'gemini-2.0-flash-lite',
+          'gemini-2.0-flash',
+          'gemini-2.5-flash',
+          'gemini-flash-latest',
+          'gemini-3.8-flash',
+          'gemini-3.5-flash',
+          'gemini-3.0-flash'
+        ];
         let lastErr = '';
         for(const model of models){
           try{
+            const is25Full = (model === 'gemini-2.5-flash');
             const genCfg = {
               temperature: 0.1,
-              maxOutputTokens: model.includes('2.5') ? 65536 : 8192
+              maxOutputTokens: is25Full ? 65536 : 8192
             };
             if(model.includes('2.5')){
               genCfg.thinkingConfig = { thinkingBudget: 0 };
@@ -915,6 +926,10 @@ async function transcribeAudioWithGemini(blob, options = {}){
             const data = await resp.json();
             if(!resp.ok){
               lastErr = data?.error?.message || `HTTP ${resp.status}`;
+              // 若遇到 503 High Demand，稍微等待 1.2 秒即自動切換下一顆模型
+              if(resp.status === 503 || resp.status === 429){
+                await new Promise(r => setTimeout(r, 1200));
+              }
               continue;
             }
             const parts = data?.candidates?.[0]?.content?.parts || [];
