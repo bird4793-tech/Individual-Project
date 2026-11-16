@@ -640,15 +640,17 @@ function startProgressUI(initialText, estSeconds = 25){
   const pbox = $('#pbox'), ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
   if(!pbox) return;
   clearInterval(progTimer);
+  pbox.style.display = 'block';
   pbox.classList.add('on');
   ptxt.textContent = initialText || '🎙️ AI 原音聽寫與發言者分析進行中…';
-  let pct = 3;
-  ppct.textContent = '3%';
-  pfill.style.width = '3%';
-  const stepMs = Math.max(300, Math.floor((estSeconds * 1000) / 88));
+  let pct = 5;
+  ppct.textContent = '5%';
+  pfill.style.width = '5%';
+  try{ pbox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }catch(e){}
+  const stepMs = Math.max(250, Math.floor((estSeconds * 1000) / 85));
   progTimer = setInterval(()=>{
     if(pct < 92){
-      pct += (pct < 60 ? 2 : 1);
+      pct += (pct < 55 ? 2 : 1);
       ppct.textContent = pct + '%';
       pfill.style.width = pct + '%';
     }
@@ -656,7 +658,11 @@ function startProgressUI(initialText, estSeconds = 25){
 }
 
 function updateProgressUI(text, pct){
-  const ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
+  const pbox = $('#pbox'), ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
+  if(pbox){
+    pbox.style.display = 'block';
+    pbox.classList.add('on');
+  }
   if(text && ptxt) ptxt.textContent = text;
   if(typeof pct === 'number' && ppct && pfill){
     const v = Math.min(100, Math.max(0, Math.round(pct)));
@@ -673,11 +679,49 @@ function finishProgressUI(success = true, finalMsg = ''){
     if(ptxt) ptxt.textContent = finalMsg || '✅ 聽寫與發言者標記完成！';
     if(ppct) ppct.textContent = '100%';
     if(pfill) pfill.style.width = '100%';
-    setTimeout(()=> pbox.classList.remove('on'), 2600);
+    setTimeout(()=> {
+      pbox.classList.remove('on');
+      pbox.style.display = 'none';
+    }, 3200);
   } else {
     if(ptxt) ptxt.textContent = finalMsg || '⚠️ 聽寫中斷';
-    setTimeout(()=> pbox.classList.remove('on'), 3500);
+    setTimeout(()=> {
+      pbox.classList.remove('on');
+      pbox.style.display = 'none';
+    }, 4000);
   }
+}
+
+// 確保每一行逐字稿都有【甲】【乙】【丙】【丁】發言者代號的保底格式化器
+function ensureSpeakerLabels(rawText){
+  if(!rawText) return '';
+  const speakers = ['甲', '乙', '丙', '丁'];
+  let spkIdx = 0;
+  const lines = rawText.split('\n');
+  return lines.map(line => {
+    const trimmed = line.trim();
+    if(!trimmed || trimmed.startsWith('⚠️')) return line;
+    // 如果已經有【甲】、【乙】或 [甲] 等標記，統一轉為【甲】：格式
+    if(/【[甲乙丙丁戊己A-D]|说话者|說話者|Speaker/i.test(trimmed)){
+      return trimmed;
+    }
+    // 匹配開頭是否有時間戳記 [00:12] 或 [00:01:12]
+    const m = trimmed.match(/^(\[(?:\d{1,2}:)?\d{2}:\d{2}\])\s*(.*)$/);
+    if(m){
+      const ts = m[1];
+      let content = m[2].replace(/^[:：\-—\s]+/, '');
+      // 若內容開頭有 甲： 或 乙：
+      const spkMatch = content.match(/^([甲乙丙丁])[:：]\s*(.*)$/);
+      if(spkMatch){
+        return `${ts} 【${spkMatch[1]}】：${spkMatch[2]}`;
+      }
+      const spk = speakers[spkIdx % 2];
+      // 當遇到問句或語氣轉折時自動切換下一位說話者代號
+      if(/[？?！!。]$/.test(content)) spkIdx++;
+      return `${ts} 【${spk}】：${content}`;
+    }
+    return line;
+  }).join('\n');
 }
 
 async function uploadLargeAudioViaFilesAPI(blob, apiKey, displayName){
@@ -738,6 +782,12 @@ async function transcribeAudioWithGemini(blob, options = {}){
     return toast('音檔過短或沒有聲音，無法聽寫');
   }
 
+  const dz = $('#dz');
+  if(dz) dz.style.opacity = '0.6';
+
+  // 第一時間立即顯示進度條，不等待 metadata 解析！
+  startProgressUI('🎙️ 正在讀取音檔並啟動 AI 聲紋聽寫…', 25);
+
   // 檢查音檔長度是否超過 3 小時（10800 秒）上限
   const durSec = await getAudioDurationSec(blob);
   const MAX_SEC = 3 * 3600;
@@ -748,12 +798,10 @@ async function transcribeAudioWithGemini(blob, options = {}){
     toast(`⚠️ 此音檔長達 ${hrs} 小時，已超過 3 小時上限！系統將僅處理前 3 小時內容，超出部分請分割後再上傳。`);
   }
 
-  const dz = $('#dz');
-  if(dz) dz.style.opacity = '0.6';
-
   const isLargeFile = blob.size > 15 * 1024 * 1024;
   if(!apiKey && isLargeFile){
     if(dz) dz.style.opacity = '1';
+    finishProgressUI(false, '⚠️ 超過 15MB 的長音檔請先填入右上角 API Key');
     return toast('⚠️ 超過 15MB 的長錄音檔，請先在右上角填入 API Key 才能走雲端串流通道喔！');
   }
 
@@ -763,7 +811,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
       ? '📱 正在透過雲端後台啟動 AI 聽寫與【甲】【乙】聲紋辨識…'
       : (isLargeFile
         ? `📦 正在串流上傳長音檔（${(blob.size/1024/1024).toFixed(1)} MB）並進行聽寫…`
-        : '🎙️ 正在啟動 Gemini AI 原音聽寫與發言者標記…'),
+        : '🎙️ 正在啟動 Gemini AI 原音聽寫與【甲】【乙】發言者標記…'),
     estWait
   );
 
@@ -873,6 +921,9 @@ async function transcribeAudioWithGemini(blob, options = {}){
     }
 
     if(!transcript) throw new Error('AI 未回傳任何文字');
+
+    // 強制確保每一句都有【甲】【乙】代號
+    transcript = ensureSpeakerLabels(transcript);
 
     if(overLimitWarning || isTruncatedByToken){
       transcript += `\n\n⚠️【系統提示】：此音檔已達單次 3 小時（或單次最大輸出字數）上限，部分超出內容尚未轉出，建議將後續音檔分段上傳！`;
