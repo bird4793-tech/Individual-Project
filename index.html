@@ -221,8 +221,11 @@ footer{position:relative;margin-top:20px;height:160px;line-height:0}
 
     <div class="pbox" id="pbox" role="status" aria-live="polite">
       <div class="pbox-top">
-        <span id="ptxt">🎙️ 正在啟動 AI 語音聽寫與聲紋分析…</span>
-        <b id="ppct">0%</b>
+        <span id="ptxt">🤖 音檔就緒！AI 正在認領是誰在講幹話…</span>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+          <b id="ppct">0%</b>
+          <button type="button" class="lk" id="pcancel" style="color:var(--warn);font-size:12px;border:1px solid var(--warn);border-radius:999px;padding:1px 9px">取消</button>
+        </div>
       </div>
       <div class="pbar-bg"><div class="pbar-fill" id="pfill"></div></div>
     </div>
@@ -636,25 +639,42 @@ function getAudioDurationSec(blob){
 }
 
 let progTimer = null;
-function startProgressUI(initialText, estSeconds = 25){
+let progStartAt = 0;
+let progBaseText = '';
+let currentAbortCtrl = null;
+
+function startProgressUI(initialText, estSeconds = 30){
   const pbox = $('#pbox'), ptxt = $('#ptxt'), ppct = $('#ppct'), pfill = $('#pfill');
   if(!pbox) return;
   clearInterval(progTimer);
+  progStartAt = Date.now();
+  progBaseText = initialText || '🤖 音檔就緒！AI 正在認領是誰在講幹話…';
   pbox.style.display = 'block';
   pbox.classList.add('on');
-  ptxt.textContent = initialText || '🎙️ AI 原音聽寫與發言者分析進行中…';
+  ptxt.textContent = progBaseText;
   let pct = 5;
   ppct.textContent = '5%';
   pfill.style.width = '5%';
   try{ pbox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }catch(e){}
-  const stepMs = Math.max(250, Math.floor((estSeconds * 1000) / 85));
+
+  const targetSec = Math.max(15, estSeconds);
   progTimer = setInterval(()=>{
-    if(pct < 92){
-      pct += (pct < 55 ? 2 : 1);
-      ppct.textContent = pct + '%';
-      pfill.style.width = pct + '%';
+    const elapsedSec = Math.floor((Date.now() - progStartAt) / 1000);
+    if(pct < 90){
+      const step = Math.max(0.4, 85 / (targetSec * 2));
+      pct = Math.min(90, pct + step);
+    } else if(pct < 99.4){
+      // 90% 之後持續以小數點推進至 99.4%，絕不停在 92% 讓人以為當機
+      pct = Math.min(99.4, pct + 0.12);
     }
-  }, stepMs);
+    const dispPct = pct >= 90 ? pct.toFixed(1) : Math.round(pct);
+    ppct.textContent = dispPct + '%';
+    pfill.style.width = Math.min(99.5, pct) + '%';
+    if(ptxt){
+      const waitHint = elapsedSec >= 15 ? `（已耗時 ${elapsedSec} 秒，長音檔請稍候…）` : `（${elapsedSec}s）`;
+      ptxt.textContent = `${progBaseText} ${waitHint}`;
+    }
+  }, 500);
 }
 
 function updateProgressUI(text, pct){
@@ -663,7 +683,13 @@ function updateProgressUI(text, pct){
     pbox.style.display = 'block';
     pbox.classList.add('on');
   }
-  if(text && ptxt) ptxt.textContent = text;
+  if(text){
+    progBaseText = text;
+    if(ptxt){
+      const elapsedSec = progStartAt ? Math.floor((Date.now() - progStartAt) / 1000) : 0;
+      ptxt.textContent = elapsedSec > 0 ? `${text}（${elapsedSec}s）` : text;
+    }
+  }
   if(typeof pct === 'number' && ppct && pfill){
     const v = Math.min(100, Math.max(0, Math.round(pct)));
     ppct.textContent = v + '%';
@@ -684,12 +710,25 @@ function finishProgressUI(success = true, finalMsg = ''){
       pbox.style.display = 'none';
     }, 3200);
   } else {
-    if(ptxt) ptxt.textContent = finalMsg || '⚠️ 聽寫中斷';
+    if(ptxt) ptxt.textContent = finalMsg || '⚠️ 聽寫已取消或中斷';
     setTimeout(()=> {
       pbox.classList.remove('on');
       pbox.style.display = 'none';
-    }, 4000);
+    }, 4500);
   }
+}
+
+if($('#pcancel')){
+  $('#pcancel').onclick = () => {
+    if(currentAbortCtrl){
+      try{ currentAbortCtrl.abort(); }catch(e){}
+      currentAbortCtrl = null;
+    }
+    finishProgressUI(false, '🛑 已手動取消音檔聽寫（可重新點選音檔或填入右上角 API Key 加速重試）');
+    const dz = $('#dz');
+    if(dz) dz.style.opacity = '1';
+    toast('已取消目前的聽寫任務');
+  };
 }
 
 // 確保每一行逐字稿都有【甲】【乙】【丙】【丁】發言者代號的保底格式化器
@@ -782,11 +821,17 @@ async function transcribeAudioWithGemini(blob, options = {}){
     return toast('音檔過短或沒有聲音，無法聽寫');
   }
 
+  if(currentAbortCtrl){
+    try{ currentAbortCtrl.abort(); }catch(e){}
+  }
+  currentAbortCtrl = new AbortController();
+  const signal = currentAbortCtrl.signal;
+
   const dz = $('#dz');
   if(dz) dz.style.opacity = '0.6';
 
   // 第一時間立即顯示進度條，不等待 metadata 解析！
-  startProgressUI('🎙️ 正在讀取音檔並啟動 AI 聲紋聽寫…', 25);
+  startProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 35);
 
   // 檢查音檔長度是否超過 3 小時（10800 秒）上限
   const durSec = await getAudioDurationSec(blob);
@@ -798,22 +843,31 @@ async function transcribeAudioWithGemini(blob, options = {}){
     toast(`⚠️ 此音檔長達 ${hrs} 小時，已超過 3 小時上限！系統將僅處理前 3 小時內容，超出部分請分割後再上傳。`);
   }
 
-  const isLargeFile = blob.size > 15 * 1024 * 1024;
-  if(!apiKey && isLargeFile){
+  // 智慧分流：GAS 免金鑰通道受限於 Google 50MB Payload 與 6 分鐘上限，超過 8MB 或 6 分鐘的長音檔需引導或走高速通道
+  const isGasTooHeavy = (blob.size > 9 * 1024 * 1024) || (durSec > 420);
+  const isLargeFile = blob.size > 14 * 1024 * 1024;
+  if(!apiKey && isGasTooHeavy){
     if(dz) dz.style.opacity = '1';
-    finishProgressUI(false, '⚠️ 超過 15MB 的長音檔請先填入右上角 API Key');
-    return toast('⚠️ 超過 15MB 的長錄音檔，請先在右上角填入 API Key 才能走雲端串流通道喔！');
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+    const minStr = durSec > 0 ? `（約 ${Math.ceil(durSec/60)} 分鐘 / ${sizeMB}MB）` : `（${sizeMB}MB）`;
+    finishProgressUI(false, `⚠️ 長音檔${minStr}超過免費後台單次上限，請在右上角填入 API Key 啟用高速直連！`);
+    return toast(`⚠️ 此音檔較長${minStr}，免費共用後台容易卡住逾時，請在右上角填入 API Key 即可秒速直連轉出完整逐字稿！`);
   }
 
-  const estWait = durSec > 0 ? Math.min(120, Math.max(18, Math.round(durSec / 18))) : 25;
+  const estWait = durSec > 0 ? Math.min(180, Math.max(25, Math.round(durSec / 9))) : 40;
   startProgressUI(
     !apiKey
-      ? '📱 正在透過雲端後台啟動 AI 聽寫與【甲】【乙】聲紋辨識…'
+      ? '🤖 音檔就緒！AI 正在雲端認領是誰在講幹話…'
       : (isLargeFile
-        ? `📦 正在串流上傳長音檔（${(blob.size/1024/1024).toFixed(1)} MB）並進行聽寫…`
-        : '🎙️ 正在啟動 Gemini AI 原音聽寫與【甲】【乙】發言者標記…'),
+        ? `📦 正在串流上傳長音檔（${(blob.size/1024/1024).toFixed(1)} MB）並認領幹話…`
+        : '🤖 音檔就緒！AI 正在認領是誰在講幹話…'),
     estWait
   );
+
+  // 設定 4.5 分鐘自動逾時保護，避免網路斷線永遠卡住
+  const timeoutId = setTimeout(()=>{
+    if(currentAbortCtrl) try{ currentAbortCtrl.abort('TIMEOUT'); }catch(e){}
+  }, 270 * 1000);
 
   let uploadedFileName = '';
   try{
@@ -848,12 +902,13 @@ async function transcribeAudioWithGemini(blob, options = {}){
 
     // 通道 A：未填右上角 API Key 時，自動走 GAS 後台
     if(!apiKey){
-      updateProgressUI('☁️ 正在上傳音檔至雲端後台進行聲紋分析與完整聽寫…', 25);
+      updateProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 25);
       const base64Audio = await blobToBase64(blob);
       const mimeType = getSafeAudioMime(blob, fileName);
       const gasResp = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        signal,
         body: JSON.stringify({
           action: 'transcribe',
           audioBase64: base64Audio,
@@ -874,8 +929,9 @@ async function transcribeAudioWithGemini(blob, options = {}){
         const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'long_meeting');
         uploadedFileName = fileObj.name;
         mediaPart = { file_data: { mime_type: fileObj.mimeType || safeMime, file_uri: fileObj.uri } };
-        updateProgressUI('🤖 音檔辨識中！AI 正在認領是誰在講幹話…', 55);
+        updateProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 55);
       } else {
+        updateProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 30);
         const base64Audio = await blobToBase64(blob);
         mediaPart = { inline_data: { mime_type: safeMime, data: base64Audio } };
       }
@@ -888,6 +944,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
           const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal,
             body: JSON.stringify({
               contents: [{
                 parts: [
@@ -911,6 +968,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
           if(cand?.finishReason === 'MAX_TOKENS') isTruncatedByToken = true;
           if(transcript) break;
         }catch(err){
+          if(signal.aborted) throw err;
           lastErr = err.message;
         }
       }
@@ -940,15 +998,24 @@ async function transcribeAudioWithGemini(blob, options = {}){
     updateWordCount();
     save();
     box.scrollTop = box.scrollHeight;
-    finishProgressUI(true, '✅ 聽寫完成！已標記【甲】【乙】發言者與時間戳記');
+    finishProgressUI(true, '✅ 幹話認領完成！已標記【甲】【乙】發言者與時間戳記');
     toast(overLimitWarning || isTruncatedByToken
       ? '⚠️ 聽寫完成，但音檔超出上限，未轉完部分已標註於逐字稿末尾！'
       : '✨ AI 原音聽寫完成！已自動標記【甲】【乙】代號與時間戳記');
   }catch(err){
+    if(signal.aborted){
+      if(signal.reason === 'TIMEOUT'){
+        finishProgressUI(false, '⚠️ 處理逾時！長音檔請確認已在右上角填入個人 API Key 再重試');
+        toast('⚠️ 聽寫逾時，建議在右上角填入 API Key 啟用高速直連通道！');
+      }
+      return;
+    }
     console.error('Gemini Audio Transcribe Error:', err);
     finishProgressUI(false, `⚠️ 聽寫失敗：${err.message}`);
     toast(`⚠️ AI 聽寫失敗：${err.message}`);
   }finally{
+    clearTimeout(timeoutId);
+    currentAbortCtrl = null;
     if(uploadedFileName && apiKey){
       fetch(`https://generativelanguage.googleapis.com/v1beta/${uploadedFileName}?key=${encodeURIComponent(apiKey)}`, { method: 'DELETE' }).catch(()=>{});
     }
