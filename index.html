@@ -638,70 +638,6 @@ function getAudioDurationSec(blob){
   });
 }
 
-// 將解碼後的 AudioBuffer 指定秒數區間轉為輕量單聲道 10kHz WAV Blob（每 3 分鐘僅約 3.4MB，上傳極速且不卡死）
-function sliceAudioBufferToWavBlob(audioBuffer, startSec, endSec){
-  const targetRate = 10000;
-  const srcRate = audioBuffer.sampleRate;
-  const numCh = audioBuffer.numberOfChannels;
-  const startSample = Math.max(0, Math.floor(startSec * srcRate));
-  const endSample = Math.min(audioBuffer.length, Math.floor(endSec * srcRate));
-  const frameCount = Math.max(1, endSample - startSample);
-  const outLength = Math.max(1, Math.floor(frameCount * (targetRate / srcRate)));
-
-  const channels = [];
-  for(let c = 0; c < numCh; c++) channels.push(audioBuffer.getChannelData(c));
-
-  const buffer = new ArrayBuffer(44 + outLength * 2);
-  const view = new DataView(buffer);
-  const writeStr = (off, s) => { for(let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
-
-  writeStr(0, 'RIFF');
-  view.setUint32(4, 36 + outLength * 2, true);
-  writeStr(8, 'WAVE');
-  writeStr(12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, targetRate, true);
-  view.setUint32(28, targetRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeStr(36, 'data');
-  view.setUint32(40, outLength * 2, true);
-
-  const ratio = srcRate / targetRate;
-  let offset = 44;
-  for(let i = 0; i < outLength; i++){
-    const srcIdx = Math.min(endSample - 1, startSample + Math.floor(i * ratio));
-    let sample = 0;
-    for(let c = 0; c < numCh; c++) sample += channels[c][srcIdx];
-    sample /= numCh;
-    sample = Math.max(-1, Math.min(1, sample));
-    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-    offset += 2;
-  }
-  return new Blob([buffer], { type: 'audio/wav' });
-}
-
-// 自動把分段音檔的時間戳記加上該段的起始秒數（例如第 2 段自動 +03:00）
-function shiftTranscriptTimestamps(text, offsetSec){
-  if(!offsetSec || offsetSec <= 0) return text;
-  return text.replace(/\[(?:(\d{1,2}):)?(\d{2}):(\d{2})\]/g, (match, hStr, mStr, sStr) => {
-    const h = hStr ? parseInt(hStr, 10) : 0;
-    const m = parseInt(mStr, 10);
-    const s = parseInt(sStr, 10);
-    let total = h * 3600 + m * 60 + s;
-    // 若 AI 已經自行從 offsetSec 之後標記就不重複加，若從 00:00 算起則自動加上 offsetSec
-    if(total < offsetSec || offsetSec >= 180){
-      total += Math.round(offsetSec);
-    }
-    const nh = Math.floor(total / 3600);
-    const nm = Math.floor((total % 3600) / 60);
-    const ns = total % 60;
-    return nh > 0 ? `[${pad(nh)}:${pad(nm)}:${pad(ns)}]` : `[${pad(nm)}:${pad(ns)}]`;
-  });
-}
-
 let progTimer = null;
 let progStartAt = 0;
 let progBaseText = '';
@@ -930,11 +866,11 @@ async function transcribeAudioWithGemini(blob, options = {}){
     // 採用最穩定、已驗證 100% 會回傳文字的簡潔 Prompt
     const promptText =
       `${langInstruction}\n` +
-      `請在每一句開頭標上時間戳記 [分:秒] 與說話者代號【甲】、【乙】、【丙】、【丁】（例如：[00:05] 【甲】：你好）。只輸出逐字稿文字本身，不要加任何說明。`;
+      `請在每一句開頭標上時間戳記 [分:秒] 與說話者代號【甲】、【乙】、【丙】、【丁】（例如：[00:05] 【甲】：你好）。請從頭到尾完整聽寫至音檔結束，只輸出逐字稿文字本身，不要加任何說明。`;
 
-    // 單一音訊區塊傳送給 AI 的核心函式
-    async function sendBlobToAI(chunkBlob, chunkMime){
-      const base64Audio = await blobToBase64(chunkBlob);
+    // 整包音檔單次傳送（不切片連發，避免觸發 Google API 頻率限制與 High Demand）
+    async function sendBlobToAI(targetBlob, targetMime){
+      const base64Audio = await blobToBase64(targetBlob);
       if(!apiKey){
         const gasResp = await fetch(GAS_URL, {
           method: 'POST',
@@ -943,7 +879,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
           body: JSON.stringify({
             action: 'transcribe',
             audioBase64: base64Audio,
-            mimeType: chunkMime,
+            mimeType: targetMime,
             prompt: promptText
           })
         });
@@ -955,6 +891,13 @@ async function transcribeAudioWithGemini(blob, options = {}){
         let lastErr = '';
         for(const model of models){
           try{
+            const genCfg = {
+              temperature: 0.1,
+              maxOutputTokens: model.includes('2.5') ? 65536 : 8192
+            };
+            if(model.includes('2.5')){
+              genCfg.thinkingConfig = { thinkingBudget: 0 };
+            }
             const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -963,13 +906,10 @@ async function transcribeAudioWithGemini(blob, options = {}){
                 contents: [{
                   parts: [
                     { text: promptText },
-                    { inline_data: { mime_type: chunkMime, data: base64Audio } }
+                    { inline_data: { mime_type: targetMime, data: base64Audio } }
                   ]
                 }],
-                generationConfig: {
-                  temperature: 0.1,
-                  maxOutputTokens: 8192
-                }
+                generationConfig: genCfg
               })
             });
             const data = await resp.json();
@@ -991,73 +931,22 @@ async function transcribeAudioWithGemini(blob, options = {}){
 
     const box = $('#tx');
     const initialPrefix = (replaceExisting || !box.value.trim()) ? '' : (box.value.trimEnd() + '\n\n');
-    let accumulatedTranscript = '';
+    updateProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 30);
 
-    // 若音檔超過 3 分鐘（180 秒），自動在瀏覽器實體切成每段 180 秒的輕量音檔逐段聽寫！
-    const CHUNK_SEC = 180;
-    let audioBuffer = null;
-    if(durSec > 195 || blob.size > 5 * 1024 * 1024){
-      try{
-        updateProgressUI('✂️ 長音檔自動切片中（每 3 分鐘一段，確保完整不漏字）…', 10);
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const actx = new AudioCtx();
-        const arrBuf = await blob.arrayBuffer();
-        audioBuffer = await actx.decodeAudioData(arrBuf);
-        actx.close().catch(()=>{});
-      }catch(decErr){
-        console.warn('瀏覽器音訊解碼切片失敗，改用原檔傳送:', decErr);
-        audioBuffer = null;
-      }
-    }
-
-    if(audioBuffer && audioBuffer.duration > 195){
-      const totalDur = Math.min(audioBuffer.duration, MAX_SEC);
-      const totalChunks = Math.ceil(totalDur / CHUNK_SEC);
-
-      for(let c = 0; c < totalChunks; c++){
-        if(signal.aborted) throw new Error('CANCELLED');
-        const startSec = c * CHUNK_SEC;
-        const endSec = Math.min(totalDur, (c + 1) * CHUNK_SEC);
-        const rangeLabel = `${fmtTime(startSec)} ~ ${fmtTime(endSec)}`;
-        const pct = Math.round(15 + (c / totalChunks) * 80);
-
-        updateProgressUI(`🤖 正在聽寫第 ${c + 1}/${totalChunks} 段（${rangeLabel}）…AI 認領幹話中`, pct);
-
-        const wavBlob = sliceAudioBufferToWavBlob(audioBuffer, startSec, endSec);
-        const segRaw = await sendBlobToAI(wavBlob, 'audio/wav');
-
-        if(segRaw && !segRaw.includes('無清晰語音')){
-          const shifted = shiftTranscriptTimestamps(segRaw, startSec);
-          const formatted = ensureSpeakerLabels(shifted);
-          accumulatedTranscript += (accumulatedTranscript ? '\n' : '') + formatted;
-          // 每完成 3 分鐘就立刻把文字印進輸入框，不用乾等！
-          box.value = initialPrefix + accumulatedTranscript + '\n';
-          committed = box.value;
-          cur().tx = box.value;
-          updateWordCount();
-          save();
-          box.scrollTop = box.scrollHeight;
-        }
-      }
-    } else {
-      // 3 分鐘以內的短音檔直接一次傳送
-      updateProgressUI('🤖 音檔就緒！AI 正在認領是誰在講幹話…', 30);
-      const safeMime = getSafeAudioMime(blob, fileName);
-      const segRaw = await sendBlobToAI(blob, safeMime);
-      if(segRaw){
-        accumulatedTranscript = ensureSpeakerLabels(segRaw);
-        box.value = initialPrefix + accumulatedTranscript + '\n';
-        committed = box.value;
-        cur().tx = box.value;
-        updateWordCount();
-        save();
-        box.scrollTop = box.scrollHeight;
-      }
-    }
+    const safeMime = getSafeAudioMime(blob, fileName);
+    const segRaw = await sendBlobToAI(blob, safeMime);
+    const accumulatedTranscript = segRaw ? ensureSpeakerLabels(segRaw) : '';
 
     if(!accumulatedTranscript.trim()){
       throw new Error('AI 未回傳文字，請確認音檔是否有清晰說話聲');
     }
+
+    box.value = initialPrefix + accumulatedTranscript + '\n';
+    committed = box.value;
+    cur().tx = box.value;
+    updateWordCount();
+    save();
+    box.scrollTop = box.scrollHeight;
 
     if(overLimitWarning){
       accumulatedTranscript += `\n\n⚠️【系統提示】：此音檔已超過單次 3 小時上限，超出部分尚未轉出，請分割後再上傳！`;
