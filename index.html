@@ -639,6 +639,7 @@ function getAudioDurationSec(blob){
   });
 }
 
+// 針對超大型音檔（超過 14MB 且無填入 API Key 時）進行無記憶體負擔的位元組等比例切塊（每塊約 9MB）
 function sliceLargeBlobByBytes(blob, durSec, safeMime, maxTotalSec = 10800){
   const effectiveRatio = (durSec > maxTotalSec) ? (maxTotalSec / durSec) : 1;
   const usableBytes = Math.floor(blob.size * effectiveRatio);
@@ -660,6 +661,7 @@ function sliceLargeBlobByBytes(blob, durSec, safeMime, maxTotalSec = 10800){
   return chunks;
 }
 
+// 將 AI 回傳的該段相對時間戳記 [分:秒] 自動加上該段起始偏移秒數 offsetSec
 function shiftTranscriptTimestamps(text, offsetSec){
   if(!text || !offsetSec) return text;
   return text.replace(/\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\]/g, (_, hStr, mStr, sStr) => {
@@ -672,7 +674,7 @@ function shiftTranscriptTimestamps(text, offsetSec){
   });
 }
 
-// 主動呼叫 Google Files API DELETE 刪除雲端暫存音檔（用完即焚）
+// 主動呼叫 Google Files API DELETE 刪除雲端暫存音檔（用完即焚，保護個資）
 async function deleteGoogleCloudFile(fileName, apiKey){
   if(!fileName || !apiKey) return;
   try{
@@ -706,6 +708,7 @@ function startProgressUI(initialText, estSeconds = 30){
   const targetSec = Math.max(20, estSeconds);
   progTimer = setInterval(()=>{
     const elapsedSec = Math.floor((Date.now() - progStartAt) / 1000);
+    // 採用漸近線推進公式：永遠平滑前進，不會提前衝到 99.4% 死鎖乾等
     const ratio = elapsedSec / (elapsedSec + targetSec * 0.65);
     pct = Math.max(pct, Math.min(96.5, 5 + ratio * 91.5));
     const dispPct = pct >= 90 ? pct.toFixed(1) : Math.round(pct);
@@ -772,6 +775,7 @@ if($('#pcancel')){
   };
 }
 
+// 確保每一行逐字稿都有【甲】【乙】【丙】【丁】發言者代號的保底格式化器
 function ensureSpeakerLabels(rawText){
   if(!rawText) return '';
   const speakers = ['甲', '乙', '丙', '丁'];
@@ -910,9 +914,15 @@ async function transcribeAudioWithGemini(blob, options = {}){
       `${langInstruction}\n` +
       `請在每一句開頭標上時間戳記 [分:秒] 與說話者代號【甲】、【乙】、【丙】、【丁】（例如：[00:05] 【甲】：你好）。只輸出逐字稿文字本身，不要加任何開場白或結語。`;
 
-    // 省下 8 分鐘的極速直連版：直接走 SSE 串流打字機輸出，絕不空等重試、也不去 GAS 後台排隊乾等
+    // 恢復省下八分鐘的極速模型順序（台語優先 2.5-flash，一般優先 2.5-flash-lite）
+    const modelPriority = isTaiwanese
+      ? ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest']
+      : ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+
+    // 極速直連：12 秒內沒收到第一個字就立刻秒切下一顆模型，絕不空等
     async function requestGeminiContent(promptStr, mediaPart, onStreamChunk){
       if(!apiKey){
+        if(!mediaPart.inline_data) throw new Error('長音檔請先於右上角填入 API Key');
         const gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -930,13 +940,20 @@ async function transcribeAudioWithGemini(blob, options = {}){
         return (gasData.transcript || gasData.text || '').trim();
       }
 
-      const modelPriority = isTaiwanese
-        ? ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']
-        : ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
       let lastErr = '';
 
       for(const model of modelPriority){
         if(signal.aborted) throw new Error('已手動取消');
+        const modelCtrl = new AbortController();
+        const onUserAbort = () => modelCtrl.abort();
+        signal.addEventListener('abort', onUserAbort, { once: true });
+
+        // 12 秒首字超時保險絲：避免 Google 機房把連線掛著死等
+        let gotFirstByte = false;
+        const firstByteTimer = setTimeout(() => {
+          if(!gotFirstByte) modelCtrl.abort();
+        }, 12000);
+
         try{
           const is25Full = (model === 'gemini-2.5-flash');
           const genCfg = {
@@ -949,7 +966,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
           const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            signal,
+            signal: modelCtrl.signal,
             body: JSON.stringify({
               contents: [{
                 parts: [
@@ -961,11 +978,9 @@ async function transcribeAudioWithGemini(blob, options = {}){
             })
           });
           if(!resp.ok){
+            clearTimeout(firstByteTimer);
             const errJson = await resp.json().catch(()=>({}));
-            lastErr = errJson?.error?.message || `HTTP ${resp.status}`;
-            if(resp.status === 503 || resp.status === 429){
-              await new Promise(r => setTimeout(r, 800));
-            }
+            lastErr = `${model} (${resp.status}): ${errJson?.error?.message || '忙碌中'}`;
             continue;
           }
 
@@ -977,6 +992,8 @@ async function transcribeAudioWithGemini(blob, options = {}){
           while(true){
             const { value, done } = await reader.read();
             if(done) break;
+            gotFirstByte = true;
+            clearTimeout(firstByteTimer);
             sseBuffer += decoder.decode(value, { stream: true });
             const lines = sseBuffer.split('\n');
             sseBuffer = lines.pop() || '';
@@ -997,13 +1014,18 @@ async function transcribeAudioWithGemini(blob, options = {}){
             }
           }
           if(fullStreamText.trim()) return fullStreamText.trim();
-          lastErr = 'AI 未回傳文字內容';
+          lastErr = `${model}: 回傳內容為空`;
         }catch(err){
-          if(signal.aborted) throw err;
-          lastErr = err.message;
+          clearTimeout(firstByteTimer);
+          if(signal.aborted) throw new Error('已手動取消');
+          lastErr = gotFirstByte ? err.message : `${model} 回應逾時，已自動切換下一顆模型`;
+        }finally{
+          clearTimeout(firstByteTimer);
+          signal.removeEventListener('abort', onUserAbort);
         }
       }
-      throw new Error(lastErr || '所有模型暫時忙碌，請稍後再試');
+
+      throw new Error(lastErr || 'Google 伺服器目前全線尖峰塞車，請稍後再試');
     }
 
     const box = $('#tx');
@@ -1011,6 +1033,8 @@ async function transcribeAudioWithGemini(blob, options = {}){
     const safeMime = getSafeAudioMime(blob, fileName);
     const effectiveDur = durSec > 0 ? Math.min(durSec, MAX_SEC) : 0;
 
+    // 決策路徑：
+    // 路徑 A：有填 API Key 且音檔較長（> 6 分鐘）或檔案較大（> 14MB）
     if(apiKey && (effectiveDur > 360 || blob.size > 14 * 1024 * 1024)){
       updateProgressUI('☁️ 正在透過加密通道高速傳送原生音檔（免轉檔、用完即焚）…', 15);
       const fileObj = await uploadLargeAudioViaFilesAPI(blob, apiKey, fileName || 'meeting_audio');
@@ -1058,6 +1082,7 @@ async function transcribeAudioWithGemini(blob, options = {}){
         throw new Error('AI 未回傳文字，請確認音檔是否有清晰說話聲');
       }
     } else {
+      // 路徑 B：14MB 以內（或未填 API Key 走後台預設線路）-> 原生壓縮音檔直傳
       let segments = [{ blob, mimeType: safeMime, offsetSec: 0 }];
       if(!apiKey && blob.size > 14 * 1024 * 1024){
         segments = sliceLargeBlobByBytes(blob, durSec, safeMime, MAX_SEC);
@@ -1214,6 +1239,7 @@ $('#rb').onclick=async ()=>{
   const iosMode = isIOSDevice();
   let audioStarted = false;
 
+  // 1. 優先啟動獨立背景音檔錄製（與即時語音辨識徹底解耦，絕不因 40 秒休眠而中斷）
   if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
     try{
       mStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1239,6 +1265,7 @@ $('#rb').onclick=async ()=>{
         dla.download = finalFileName;
         $('#evid').classList.add('on');
 
+        // 彈出確認是否立即下載保存至手機的視窗
         const sizeKB = Math.max(1, Math.round(blob.size / 1024));
         const sizeLabel = sizeKB > 1024 ? `${(sizeKB/1024).toFixed(1)} MB` : `${sizeKB} KB`;
         $('#dlModalInfo').textContent = `檔案：${finalFileName}（${sizeLabel}）\n是否立即下載保存至手機？`;
@@ -1247,6 +1274,7 @@ $('#rb').onclick=async ()=>{
         yesBtn.download = finalFileName;
         $('#dlModal').classList.add('on');
 
+        // 若為 iOS 單通道模式、台語模式或沒有即時逐字稿，自動啟動 AI 原音聽寫
         if(iosMode || isTaiwaneseMode || !$('#tx').value.trim()){
           transcribeAudioWithGemini(blob, { replaceExisting: isTaiwaneseMode || !$('#tx').value.trim(), fileName: finalFileName });
         }
@@ -1271,6 +1299,7 @@ $('#rb').onclick=async ()=>{
   let sessionStartedAt = Date.now();
   let srFailed = false;
 
+  // 2. 非 iOS 且非台語模式才同時啟動即時語音辨識（避免 iOS 雙開搶麥克風或台語吐出國語亂碼）
   function createAndStartRecognizer(){
     if(!recording || !SR || iosMode || isTaiwaneseMode || srFailed) return;
     const r = new SR();
@@ -1324,6 +1353,7 @@ $('#rb').onclick=async ()=>{
         updateWordCount();
         save();
       }
+      // 關鍵修復：即便即時辨識重啟失敗，也絕對不關掉背景錄音 (audioStarted)，讓錄音持續進行！
       if(recording && !srFailed){
         setTimeout(()=>{ if(recording && !srFailed) createAndStartRecognizer(); }, 250);
       } else if(!recording) {
@@ -1424,8 +1454,9 @@ $('#gen').onclick=async ()=>{
     if (customKey) payload.customKey = customKey;
     let outText = '';
 
+    // 若已填入 API Key，優先由前端走 SSE 即時串流通道；若失敗則自動無感退回走前端直連或 GAS 後台保底
     if (customKey) {
-      const fastModels = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
+      const fastModels = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
       for (const modelName of fastModels) {
         try {
           const genCfg = { temperature: 0.2, maxOutputTokens: 8192 };
@@ -1474,6 +1505,7 @@ $('#gen').onclick=async ()=>{
         } catch (err) {}
       }
 
+      // 第二層保險：若瀏覽器環境擋掉 SSE 串流，改用標準 generateContent 前端直連（依然幾秒內極速完成）
       if (!outText) {
         for (const modelName of fastModels) {
           try {
@@ -1500,6 +1532,7 @@ $('#gen').onclick=async ()=>{
       }
     }
 
+    // 第三層保險：若前端直連均未成功或未填 API Key，自動退回走 GAS 後台預設共用線路保底
     if (!outText) {
       const resp = await fetch(GAS_URL, {
         method: 'POST',
@@ -1658,6 +1691,7 @@ function theme(t){
 theme(document.documentElement.dataset.theme||'dark');
 $('#th').onclick=()=>theme(document.documentElement.dataset.theme=='dark'?'light':'dark');
 
+// 職場正經模式 / 甩鍋幽默模式一鍵切換（回應同學建議）
 function applyCopyMode(mode){
   const formal = (mode === 'formal');
   W('mp_mode', mode);
