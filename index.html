@@ -917,9 +917,11 @@ async function transcribeAudioWithGemini(blob, options = {}){
     // 優先使用算力池最大、最不易 503 塞車的輕量模型
     const modelPriority = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
 
-    // 呼叫 Gemini 生成文字（支援即時串流打字機輸出 streamGenerateContent ＋ 3 輪抗塞車重試）
+    // 呼叫 Gemini 生成文字（支援即時串流打字機輸出 streamGenerateContent ＋ 抗塞車重試 ＋ 失敗自動退回 GAS 保底）
     async function requestGeminiContent(promptStr, mediaPart, onStreamChunk){
-      if(!apiKey){
+      const tryGasFallback = async () => {
+        if(!mediaPart.inline_data) return '';
+        updateProgressUI('🔄 主線路尖峰塞車中，正在切換至雲端備援線路搶救…');
         const gasResp = await fetch(GAS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -935,10 +937,14 @@ async function transcribeAudioWithGemini(blob, options = {}){
         const gasData = await gasResp.json();
         if(gasData.error) throw new Error(gasData.error);
         return (gasData.transcript || gasData.text || '').trim();
+      };
+
+      if(!apiKey){
+        return await tryGasFallback();
       }
 
       let lastErr = '';
-      const retryDelays = [0, 2500, 5000];
+      const retryDelays = [0, 2000];
 
       for(let round = 0; round < retryDelays.length; round++){
         if(round > 0){
@@ -974,9 +980,9 @@ async function transcribeAudioWithGemini(blob, options = {}){
             });
             if(!resp.ok){
               const errJson = await resp.json().catch(()=>({}));
-              lastErr = errJson?.error?.message || `HTTP ${resp.status}`;
+              lastErr = `${model} (${resp.status}): ${errJson?.error?.message || '伺服器忙碌'}`;
               if(resp.status === 503 || resp.status === 429){
-                await new Promise(r => setTimeout(r, 700));
+                await new Promise(r => setTimeout(r, 500));
               }
               continue;
             }
@@ -1009,13 +1015,23 @@ async function transcribeAudioWithGemini(blob, options = {}){
               }
             }
             if(fullStreamText.trim()) return fullStreamText.trim();
+            lastErr = `${model}: 回傳內容為空`;
           }catch(err){
             if(signal.aborted) throw err;
             lastErr = err.message;
           }
         }
       }
-      throw new Error(lastErr || 'Google 伺服器持續尖峰忙碌中，請過 1 分鐘再試');
+
+      // 前端兩輪皆遇尖峰塞車時，自動無感轉交 GAS 後台（使用指令碼屬性中的另一組金鑰接力）
+      try{
+        const gasRes = await tryGasFallback();
+        if(gasRes) return gasRes;
+      }catch(gasErr){
+        lastErr = `${lastErr} ｜ 備援線路：${gasErr.message}`;
+      }
+
+      throw new Error(lastErr || 'Google 伺服器目前全線尖峰塞車，請稍後再試');
     }
 
     const box = $('#tx');
