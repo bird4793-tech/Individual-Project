@@ -706,7 +706,6 @@ function startProgressUI(initialText, estSeconds = 30){
 
   progTimer = setInterval(()=>{
     const elapsedSec = Math.floor((Date.now() - progStartAt) / 1000);
-    // 漸近線平滑推算，避免提前衝到 99.4% 假卡死
     const curve = 95 * (1 - Math.exp(-elapsedSec / progEstSec));
     const pct = Math.min(97, Math.max(progFloor, curve));
     ppct.textContent = Math.round(pct) + '%';
@@ -984,9 +983,8 @@ async function transcribeAudioWithGemini(blob, options = {}){
       `${langInstruction}\n` +
       `請在每一句開頭標上時間戳記 [分:秒] 與說話者代號【甲】、【乙】、【丙】、【丁】（例如：[00:05] 【甲】：你好）。只輸出逐字稿文字本身，不要加任何開場白或結語。`;
 
-    const modelPriority = isTaiwanese
-      ? ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest']
-      : ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
+    // 優先使用算力池最大、最不易 503 塞車的輕量模型
+    const modelPriority = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
 
     async function requestGeminiContent(promptStr, mediaPart, onStreamPartial){
       if(!apiKey){
@@ -1008,37 +1006,48 @@ async function transcribeAudioWithGemini(blob, options = {}){
       }
 
       let lastErr = '';
-      for(const model of modelPriority){
-        const is25Full = (model === 'gemini-2.5-flash');
-        const genCfg = {
-          temperature: 0.1,
-          maxOutputTokens: is25Full ? 65536 : 8192
-        };
-        if(model.includes('2.5')){
-          genCfg.thinkingConfig = { thinkingBudget: 0 };
+      const retryDelays = [0, 2500, 5000]; // 第 1 輪立即跑，第 2 輪等 2.5 秒，第 3 輪等 5 秒
+
+      for(let round = 0; round < retryDelays.length; round++){
+        if(round > 0){
+          const sec = (retryDelays[round] / 1000).toFixed(1);
+          updateProgressUI(`⏳ Google 伺服器尖峰塞車，${sec} 秒後自動重試（第 ${round + 1} / ${retryDelays.length} 輪）…`);
+          await new Promise(r => setTimeout(r, retryDelays[round]));
         }
-        const parts = [{ text: promptStr }, mediaPart];
-        try{
-          const txt = await callGeminiStream(model, apiKey, parts, genCfg, signal, onStreamPartial);
-          if(txt) return txt;
-        }catch(err){
-          if(signal.aborted) throw err;
-          lastErr = err.message;
-          // 串流失敗時先嘗試同模型標準 API，若 503/429 則稍停切換下一顆模型
-          if(err.status === 503 || err.status === 429){
-            await new Promise(r => setTimeout(r, 900));
-            continue;
+
+        for(const model of modelPriority){
+          if(signal.aborted) throw new Error('已手動取消');
+          const is25Full = (model === 'gemini-2.5-flash');
+          const genCfg = {
+            temperature: 0.1,
+            maxOutputTokens: is25Full ? 65536 : 8192
+          };
+          if(model.includes('2.5')){
+            genCfg.thinkingConfig = { thinkingBudget: 0 };
           }
+          const parts = [{ text: promptStr }, mediaPart];
+
           try{
-            const stdTxt = await callGeminiStandard(model, apiKey, parts, genCfg, signal);
-            if(stdTxt) return stdTxt;
-          }catch(stdErr){
-            if(signal.aborted) throw stdErr;
-            lastErr = stdErr.message;
+            const txt = await callGeminiStream(model, apiKey, parts, genCfg, signal, onStreamPartial);
+            if(txt) return txt;
+          }catch(err){
+            if(signal.aborted) throw err;
+            lastErr = err.message;
+            if(err.status === 503 || err.status === 429){
+              await new Promise(r => setTimeout(r, 600));
+              continue;
+            }
+            try{
+              const stdTxt = await callGeminiStandard(model, apiKey, parts, genCfg, signal);
+              if(stdTxt) return stdTxt;
+            }catch(stdErr){
+              if(signal.aborted) throw stdErr;
+              lastErr = stdErr.message;
+            }
           }
         }
       }
-      throw new Error(lastErr || 'AI 未回傳文字');
+      throw new Error(lastErr || 'Google 伺服器持續尖峰忙碌中，請過 1 分鐘再試');
     }
 
     const box = $('#tx');
@@ -1280,8 +1289,9 @@ $('#rb').onclick=async ()=>{
         yesBtn.download = finalFileName;
         $('#dlModal').classList.add('on');
 
-        if(iosMode || !$('#tx').value.trim()){
-          transcribeAudioWithGemini(blob, { replaceExisting: !$('#tx').value.trim(), fileName: finalFileName });
+        // iOS 模式、台語模式或沒有即時逐字稿時，停止後強制啟動 AI 原音聽寫
+        if(iosMode || isTaiwaneseMode || !$('#tx').value.trim()){
+          transcribeAudioWithGemini(blob, { replaceExisting: isTaiwaneseMode || !$('#tx').value.trim(), fileName: finalFileName });
         }
       };
       mRec.start(1000);
@@ -1305,9 +1315,9 @@ $('#rb').onclick=async ()=>{
   let srFailed = false;
 
   function createAndStartRecognizer(){
-    if(!recording || !SR || iosMode || srFailed) return;
+    if(!recording || !SR || iosMode || isTaiwaneseMode || srFailed) return;
     const r = new SR();
-    r.lang = (selLang === 'auto' || isTaiwaneseMode) ? 'zh-TW' : selLang;
+    r.lang = (selLang === 'auto') ? 'zh-TW' : selLang;
     r.continuous = true;
     r.interimResults = true;
     let sessionInterim = '';
@@ -1379,7 +1389,7 @@ $('#rb').onclick=async ()=>{
   try{
     recording = true;
     startRecTimer();
-    if(SR && !iosMode){
+    if(SR && !iosMode && !isTaiwaneseMode){
       createAndStartRecognizer();
       clearInterval(keepAliveTimer);
       keepAliveTimer = setInterval(()=>{
@@ -1396,7 +1406,7 @@ $('#rb').onclick=async ()=>{
     }
     setSt(
       true,
-      iosMode ? 'iPhone 隱密錄音中（停止後自動 AI 聽寫）' : (isTaiwaneseMode ? '台語雙軌收音中' : '錄音蒐證中'),
+      iosMode ? 'iPhone 隱密錄音中（停止後自動 AI 聽寫）' : (isTaiwaneseMode ? '台語原音錄製中（停止後自動 AI 聽寫）' : '錄音蒐證中'),
       '再按一次圓鈕或頂部動態膠囊即可停止錄音'
     );
   }catch(e){
@@ -1454,7 +1464,7 @@ $('#gen').onclick=async ()=>{
 
     // 路徑 1 & 2：有 API Key 時優先前端即時串流 -> 失敗則同模型前端標準 API
     if(customKey){
-      const models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+      const models = ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
       for(const model of models){
         const genCfg = { temperature: 0.2, maxOutputTokens: 8192 };
         if(model.includes('2.5')) genCfg.thinkingConfig = { thinkingBudget: 0 };
